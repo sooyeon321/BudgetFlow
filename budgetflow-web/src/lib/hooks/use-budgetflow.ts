@@ -1,0 +1,232 @@
+"use client";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import {
+  approveExpense,
+  closeProject,
+  confirmTemplateMapping,
+  createBudgetCategory,
+  createProject,
+  getBudgetCategories,
+  getExpenseSummary,
+  getExpenses,
+  getExportJobs,
+  getProject,
+  getProjects,
+  rejectExpense,
+  requestExpenseReportExport,
+  uploadProjectTemplate,
+  updateBudgetCategory,
+} from "@/lib/api/budgetflow-api";
+import type { ExpenseStatus } from "@/lib/domain";
+import type {
+  BudgetCategoryInput,
+  BudgetCategoryUpdateInput,
+} from "@/lib/forms/budget-category";
+import type {
+  ExpenseRejectInput,
+  ExpenseReviewInput,
+} from "@/lib/forms/expense-review";
+import type { CreateProjectInput } from "@/lib/forms/project";
+import type {
+  ProjectTemplateUploadInput,
+  TemplateMappingConfirmInput,
+} from "@/lib/forms/template";
+
+export const budgetflowQueryKeys = {
+  projects: ["projects"] as const,
+  project: (projectId: string) => ["project", projectId] as const,
+  expensesByProject: (projectId: string) => ["expenses", projectId] as const,
+  expenses: (projectId: string, status: ExpenseStatus | "all" = "all") =>
+    ["expenses", projectId, status] as const,
+  expenseSummary: (projectId: string) =>
+    ["expense-summary", projectId] as const,
+  budgetCategories: (projectId: string) =>
+    ["budget-categories", projectId] as const,
+  exportJobs: (projectId: string) => ["export-jobs", projectId] as const,
+};
+
+export function useProjects() {
+  return useQuery({
+    queryKey: budgetflowQueryKeys.projects,
+    queryFn: getProjects,
+  });
+}
+
+export function useCreateProject() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: CreateProjectInput) => createProject(input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: budgetflowQueryKeys.projects,
+      });
+    },
+  });
+}
+
+export function useCloseProject(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => closeProject(projectId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: budgetflowQueryKeys.project(projectId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: budgetflowQueryKeys.projects,
+      });
+    },
+  });
+}
+
+export function useUploadProjectTemplate(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: ProjectTemplateUploadInput) =>
+      uploadProjectTemplate(input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: budgetflowQueryKeys.project(projectId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: budgetflowQueryKeys.projects,
+      });
+    },
+  });
+}
+
+export function useConfirmTemplateMapping(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: TemplateMappingConfirmInput) =>
+      confirmTemplateMapping(input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: budgetflowQueryKeys.project(projectId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: budgetflowQueryKeys.projects,
+      });
+    },
+  });
+}
+
+export function useProject(projectId: string) {
+  return useQuery({
+    queryKey: budgetflowQueryKeys.project(projectId),
+    queryFn: () => getProject(projectId),
+  });
+}
+
+export function useExpenses(
+  projectId: string,
+  status: ExpenseStatus | "all" = "all",
+) {
+  return useQuery({
+    queryKey: budgetflowQueryKeys.expenses(projectId, status),
+    queryFn: () => getExpenses({ projectId, status }),
+    refetchInterval: 5_000,
+  });
+}
+
+export function useApproveExpense(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: ExpenseReviewInput) => approveExpense(input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: budgetflowQueryKeys.expensesByProject(projectId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: budgetflowQueryKeys.expenseSummary(projectId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: budgetflowQueryKeys.budgetCategories(projectId),
+      });
+    },
+  });
+}
+
+export function useRejectExpense(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: ExpenseRejectInput) => rejectExpense(input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: budgetflowQueryKeys.expensesByProject(projectId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: budgetflowQueryKeys.expenseSummary(projectId),
+      });
+    },
+  });
+}
+
+export function useExpenseSummary(projectId: string) {
+  return useQuery({
+    queryKey: budgetflowQueryKeys.expenseSummary(projectId),
+    queryFn: () => getExpenseSummary(projectId),
+  });
+}
+
+export function useBudgetCategories(projectId: string) {
+  return useQuery({
+    queryKey: budgetflowQueryKeys.budgetCategories(projectId),
+    queryFn: () => getBudgetCategories(projectId),
+  });
+}
+
+export function useCreateBudgetCategory(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: BudgetCategoryInput) => createBudgetCategory(input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: budgetflowQueryKeys.budgetCategories(projectId),
+      });
+    },
+  });
+}
+
+export function useUpdateBudgetCategory(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: BudgetCategoryUpdateInput) =>
+      updateBudgetCategory(input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: budgetflowQueryKeys.budgetCategories(projectId),
+      });
+    },
+  });
+}
+
+export function useExportJobs(projectId: string) {
+  return useQuery({
+    queryKey: budgetflowQueryKeys.exportJobs(projectId),
+    queryFn: () => getExportJobs(projectId),
+  });
+}
+
+export function useRequestExpenseReportExport(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => requestExpenseReportExport(projectId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: budgetflowQueryKeys.exportJobs(projectId),
+      });
+    },
+  });
+}
