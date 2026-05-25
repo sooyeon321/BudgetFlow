@@ -2,9 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Pencil, Plus, Save, Tag, Upload } from "lucide-react";
+import { Loader2, Pencil, Plus, Save, Upload } from "lucide-react";
 import { useForm } from "react-hook-form";
 
+import {
+  PageHeader,
+  Panel,
+  ProgressBar,
+  SectionToolbar,
+  StatusBadge,
+} from "@/components/budgetflow-ui";
 import { TextArea, TextInput } from "@/components/form-controls";
 import { FormField } from "@/components/form-field";
 import { SummaryCard } from "@/components/summary-card";
@@ -32,10 +39,18 @@ import {
 } from "@/lib/hooks/use-budgetflow";
 
 const defaultValues: BudgetCategoryFormInput = {
-  name: "",
   budgetLimit: 100_000,
   keywordsText: "",
+  name: "",
 };
+
+const reviewPolicies = [
+  "AI 신뢰도 낮음",
+  "예산 초과 가능",
+  "영수증 없음",
+  "필수 필드 누락",
+  "OCR 실패",
+] as const;
 
 export function SettingsClient() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -66,9 +81,9 @@ export function SettingsClient() {
     }
 
     form.reset({
-      name: selectedCategory.name,
       budgetLimit: selectedCategory.budgetLimit,
       keywordsText: selectedCategory.keywords.join(", "),
+      name: selectedCategory.name,
     });
   }, [form, selectedCategory]);
 
@@ -90,17 +105,17 @@ export function SettingsClient() {
 
     if (selectedCategory) {
       await updateCategory.mutateAsync({
-        categoryId: selectedCategory.id,
-        name: values.name,
         budgetLimit: values.budgetLimit,
+        categoryId: selectedCategory.id,
         keywords,
+        name: values.name,
       });
     } else {
       await createCategory.mutateAsync({
-        projectId: DEMO_PROJECT_ID,
-        name: values.name,
         budgetLimit: values.budgetLimit,
         keywords,
+        name: values.name,
+        projectId: DEMO_PROJECT_ID,
       });
     }
 
@@ -109,49 +124,44 @@ export function SettingsClient() {
   });
 
   return (
-    <section className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">설정</h1>
-          <p className="mt-1 text-sm leading-6 text-zinc-600">
-            {projectQuery.data?.name ?? "프로젝트"}의 예산 카테고리와 분류
-            기준을 관리합니다.
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          onClick={() =>
-            document
-              .getElementById("template-upload")
-              ?.scrollIntoView({ behavior: "smooth", block: "start" })
-          }
-        >
-          <Upload data-icon="inline-start" /> 양식 업로드
-        </Button>
-      </div>
+    <section className="bf-page-stack">
+      <PageHeader
+        eyebrow="Settings"
+        lead="기관 제출용 파일을 만들기 위해 양식 업로드와 관리자 확정 단계를 분리했습니다. AI 추천은 출발점이고 최종 매핑은 사람이 확정합니다."
+        title="엑셀 양식, 컬럼 매핑, 예산 카테고리"
+      />
 
-      <TemplateUploadPanel project={projectQuery.data ?? null} />
-
-      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <SummaryCard label="카테고리 예산" value={formatCurrency(totals.budgetLimit)} />
-            <SummaryCard label="승인 사용액" value={formatCurrency(totals.approvedAmount)} />
-          </div>
+          <TemplateUploadPanel project={projectQuery.data ?? null} />
 
-          <div className="overflow-hidden rounded-xl border bg-background shadow-sm">
-            <div className="border-b p-4">
-              <h2 className="text-lg font-semibold">예산 카테고리</h2>
-              <p className="mt-1 text-sm leading-6 text-zinc-600">
-                한도와 키워드는 AI 분류 기준으로 백엔드에 전달됩니다.
-              </p>
+          <Panel className="bf-panel-pad">
+            <SectionToolbar>
+              <div>
+                <h2 className="text-lg font-bold text-zinc-950">예산 카테고리와 한도</h2>
+                <p className="bf-helper mt-1">
+                  카테고리 한도와 키워드는 AI 분류 기준으로 백엔드에 전달됩니다.
+                </p>
+              </div>
+            </SectionToolbar>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <SummaryCard
+                label="카테고리 예산"
+                value={formatCurrency(totals.budgetLimit)}
+              />
+              <SummaryCard
+                label="승인 사용액"
+                tone="success"
+                value={formatCurrency(totals.approvedAmount)}
+              />
             </div>
 
-            <div className="divide-y">
+            <div className="mt-4 divide-y divide-zinc-100">
               {categoriesQuery.isLoading ? (
-                <div className="p-5 text-sm text-zinc-600">
+                <p className="py-5 text-sm text-zinc-600">
                   카테고리를 불러오는 중입니다.
-                </div>
+                </p>
               ) : null}
 
               {categoriesQuery.data?.map((category) => (
@@ -163,75 +173,119 @@ export function SettingsClient() {
                 />
               ))}
             </div>
-          </div>
-        </div>
+          </Panel>
 
-        <form
-          onSubmit={onSubmit}
-          className="h-fit rounded-xl border bg-background p-5 shadow-sm"
-        >
-          <div className="mb-5 flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold">
+          <Panel className="bf-panel-pad">
+            <SectionToolbar
+              actions={
+                <Button
+                  onClick={() => setSelectedCategoryId(null)}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  <Plus data-icon="inline-start" />
+                  새 항목
+                </Button>
+              }
+            >
+              <h2 className="text-lg font-bold text-zinc-950">
                 {selectedCategory ? "카테고리 수정" : "카테고리 추가"}
               </h2>
-              <p className="text-sm leading-6 text-zinc-600">
-                쉼표로 분류 키워드를 입력합니다.
-              </p>
+              <p className="bf-helper mt-1">쉼표로 분류 키워드를 입력합니다.</p>
+            </SectionToolbar>
+
+            <form className="mt-5 space-y-4" onSubmit={onSubmit}>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  label="카테고리명"
+                  error={form.formState.errors.name?.message}
+                >
+                  <TextInput placeholder="다과비" {...form.register("name")} />
+                </FormField>
+                <FormField
+                  label="예산 한도"
+                  error={form.formState.errors.budgetLimit?.message}
+                >
+                  <TextInput
+                    inputMode="numeric"
+                    step="10000"
+                    type="number"
+                    {...form.register("budgetLimit")}
+                  />
+                </FormField>
+              </div>
+              <FormField
+                label="분류 키워드"
+                error={form.formState.errors.keywordsText?.message}
+              >
+                <TextArea
+                  placeholder="간식, 커피, 음료"
+                  {...form.register("keywordsText")}
+                />
+              </FormField>
+              <Button disabled={isMutating} type="submit">
+                {isMutating ? (
+                  <Loader2 className="animate-spin" data-icon="inline-start" />
+                ) : selectedCategory ? (
+                  <Save data-icon="inline-start" />
+                ) : (
+                  <Plus data-icon="inline-start" />
+                )}
+                {selectedCategory ? "수정 저장" : "추가"}
+              </Button>
+            </form>
+          </Panel>
+        </div>
+
+        <aside className="space-y-4">
+          <Panel className="bf-panel-pad">
+            <h2 className="text-lg font-bold text-zinc-950">검토 필요 정책</h2>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {reviewPolicies.map((policy) => (
+                <StatusBadge key={policy} tone={policy === "영수증 없음" ? "missing" : "review"}>
+                  {policy}
+                </StatusBadge>
+              ))}
             </div>
-            <Button
-              size="sm"
-              type="button"
-              variant="outline"
-              onClick={() => setSelectedCategoryId(null)}
-            >
-              <Plus data-icon="inline-start" />새 항목
-            </Button>
-          </div>
+          </Panel>
 
-          <div className="space-y-4">
-            <FormField label="카테고리명" error={form.formState.errors.name?.message}>
-              <TextInput
-                placeholder="다과비"
-                {...form.register("name")}
-              />
-            </FormField>
+          <Panel className="bf-panel-pad">
+            <h2 className="text-lg font-bold text-zinc-950">엑셀 생성 전 확인</h2>
+            <div className="mt-4 space-y-3">
+              {[
+                "카테고리별 한도와 승인 사용액을 확인합니다.",
+                "추천 컬럼은 관리자가 확정한 뒤 사용합니다.",
+                "검토 필요 항목은 생성 파일에서 제외된다는 경고를 확인합니다.",
+              ].map((item) => (
+                <p
+                  className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm leading-6 text-zinc-700"
+                  key={item}
+                >
+                  {item}
+                </p>
+              ))}
+            </div>
+          </Panel>
 
-            <FormField
-              label="예산 한도"
-              error={form.formState.errors.budgetLimit?.message}
-            >
-              <TextInput
-                inputMode="numeric"
-                step="10000"
-                type="number"
-                {...form.register("budgetLimit")}
-              />
-            </FormField>
-
-            <FormField
-              label="분류 키워드"
-              error={form.formState.errors.keywordsText?.message}
-            >
-              <TextArea
-                placeholder="간식, 커피, 음료"
-                {...form.register("keywordsText")}
-              />
-            </FormField>
-          </div>
-
-          <Button className="mt-5 w-full" type="submit" disabled={isMutating}>
-            {isMutating ? (
-              <Loader2 className="animate-spin" data-icon="inline-start" />
-            ) : selectedCategory ? (
-              <Save data-icon="inline-start" />
-            ) : (
-              <Plus data-icon="inline-start" />
-            )}
-            {selectedCategory ? "수정 저장" : "추가"}
-          </Button>
-        </form>
-      </div>
+          <Panel className="bf-panel-pad">
+            <h2 className="text-lg font-bold text-zinc-950">분류 키워드</h2>
+            <div className="mt-4 space-y-2">
+              {(categoriesQuery.data ?? []).map((category) => (
+                <div
+                  className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2"
+                  key={category.id}
+                >
+                  <strong className="text-sm text-zinc-950">{category.name}</strong>
+                  <p className="mt-1 text-sm leading-6 text-zinc-600">
+                    {category.keywords.join(", ")}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        </aside>
+      </section>
     </section>
   );
 }
@@ -246,6 +300,15 @@ function TemplateUploadPanel({ project }: { project: Project | null }) {
   const confirmMapping = useConfirmTemplateMapping(DEMO_PROJECT_ID);
   const isPending = uploadTemplate.isPending || confirmMapping.isPending;
 
+  const visibleMappings =
+    uploadResult?.mappings ??
+    [
+      { confirmed: true, confidence: 0.94, sourceColumn: "날짜", targetField: "date" as const },
+      { confirmed: true, confidence: 0.9, sourceColumn: "사용처", targetField: "merchant" as const },
+      { confirmed: false, confidence: 0.88, sourceColumn: "카테고리", targetField: "category" as const },
+      { confirmed: false, confidence: 0.76, sourceColumn: "증빙 링크", targetField: "evidence" as const },
+    ];
+
   const onUpload = async () => {
     setError(null);
 
@@ -256,8 +319,8 @@ function TemplateUploadPanel({ project }: { project: Project | null }) {
 
     try {
       const result = await uploadTemplate.mutateAsync({
-        projectId: DEMO_PROJECT_ID,
         fileName,
+        projectId: DEMO_PROJECT_ID,
       });
       setUploadResult(result);
     } catch (caught) {
@@ -273,152 +336,99 @@ function TemplateUploadPanel({ project }: { project: Project | null }) {
     }
 
     const result = await confirmMapping.mutateAsync({
-      projectId: DEMO_PROJECT_ID,
       mappings: uploadResult.mappings,
+      projectId: DEMO_PROJECT_ID,
     });
     setUploadResult(result);
   };
 
+  const mappingStatus = uploadResult?.mappingStatus ?? project?.templateMappingStatus;
+
   return (
-    <section
-      className="rounded-xl border bg-background p-5 shadow-sm"
-      id="template-upload"
-    >
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">엑셀 양식 업로드</h2>
-          <p className="mt-1 text-sm leading-6 text-zinc-600">
-            MVP에서는 파일명을 Mock 저장하고, LLM 컬럼 매핑 추천 결과를
-            placeholder로 표시합니다.
-          </p>
-          <p className="mt-2 text-sm text-zinc-700">
-            현재 양식:{" "}
-            <span className="font-medium">
-              {project?.templateFileName ?? "미등록"}
-            </span>
-            <span className="ml-2 rounded-lg bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700 ring-1 ring-zinc-200">
-              {templateMappingStatusLabel(project?.templateMappingStatus)}
-            </span>
-          </p>
-        </div>
+    <Panel className="bf-panel-pad" id="template-upload">
+      <SectionToolbar
+        actions={
+          <div className="flex flex-col gap-2 sm:min-w-80">
+            <label className="flex min-h-10 cursor-pointer items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-3 text-sm hover:bg-zinc-50">
+              <span className="truncate text-zinc-600">
+                {fileName || "엑셀 파일을 선택하세요"}
+              </span>
+              <span className="shrink-0 rounded-md bg-zinc-100 px-2 py-1 text-xs font-semibold text-zinc-700">
+                파일 선택
+              </span>
+              <input
+                accept=".xlsx,.xls"
+                className="sr-only"
+                onChange={(event) => setFileName(event.target.files?.[0]?.name ?? "")}
+                type="file"
+              />
+            </label>
+            <Button disabled={isPending} onClick={() => void onUpload()} type="button">
+              {uploadTemplate.isPending ? (
+                <Loader2 className="animate-spin" data-icon="inline-start" />
+              ) : (
+                <Upload data-icon="inline-start" />
+              )}
+              업로드 및 매핑 추천
+            </Button>
+          </div>
+        }
+      >
+        <h2 className="text-lg font-bold text-zinc-950">엑셀 양식 업로드</h2>
+        <p className="bf-helper mt-1">
+          {project?.templateFileName ?? "양식 파일 미등록"} ·{" "}
+          {templateMappingStatusLabel(mappingStatus)}
+        </p>
+        <p className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm leading-6 text-zinc-700">
+          양식 파일과 컬럼 매핑이 모두 확정되어야 제출용 엑셀 생성 버튼이
+          명확하게 활성화됩니다.
+        </p>
+      </SectionToolbar>
 
-        <div className="flex flex-col gap-2 sm:min-w-80">
-          <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-lg border bg-background px-3 text-sm transition-colors hover:border-zinc-300 hover:bg-muted/40">
-            <span className="truncate text-zinc-600">
-              {fileName || "엑셀 파일을 선택하세요"}
-            </span>
-            <span className="shrink-0 rounded-md bg-muted px-2 py-1 text-xs font-semibold text-zinc-700">
-              파일 선택
-            </span>
-            <input
-              accept=".xlsx,.xls"
-              className="sr-only"
-              onChange={(event) => setFileName(event.target.files?.[0]?.name ?? "")}
-              type="file"
-            />
-          </label>
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          <Button onClick={() => void onUpload()} disabled={isPending}>
-            {uploadTemplate.isPending ? (
-              <Loader2 className="animate-spin" data-icon="inline-start" />
-            ) : (
-              <Upload data-icon="inline-start" />
-            )}
-            업로드 및 매핑 추천
-          </Button>
-        </div>
-      </div>
+      {error ? <p className="mt-3 text-sm font-medium text-red-700">{error}</p> : null}
 
-      {uploadResult ? (
-        <div className="mt-5 overflow-hidden rounded-xl border">
-          <div className="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h3 className="font-semibold">컬럼 매핑 추천</h3>
-              <p className="text-sm text-zinc-600">
-                {uploadResult.fileName} · 상태{" "}
-                {templateMappingStatusLabel(uploadResult.mappingStatus)}
-              </p>
-            </div>
+      <div className="mt-5">
+        <SectionToolbar
+          actions={
             <Button
+              disabled={isPending || !uploadResult || uploadResult.mappingStatus === "confirmed"}
               onClick={() => void onConfirmMapping()}
-              disabled={isPending || uploadResult.mappingStatus === "confirmed"}
+              type="button"
             >
               {confirmMapping.isPending ? (
                 <Loader2 className="animate-spin" data-icon="inline-start" />
               ) : (
                 <Save data-icon="inline-start" />
               )}
-              매핑 확정
+              추천 매핑 확정
             </Button>
-          </div>
+          }
+        >
+          <h3 className="font-bold text-zinc-950">LLM 컬럼 매핑 추천</h3>
+          <p className="bf-helper mt-1">
+            추천값은 관리자 확정 전까지 제출용 엑셀 생성에 사용하지 않습니다.
+          </p>
+        </SectionToolbar>
 
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-sm">
-              <thead className="bg-muted/50 text-xs text-zinc-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">엑셀 컬럼</th>
-                  <th className="px-4 py-3 font-medium">BudgetFlow 필드</th>
-                  <th className="px-4 py-3 font-medium">신뢰도</th>
-                  <th className="px-4 py-3 font-medium">상태</th>
-                </tr>
-              </thead>
-              <tbody>
-                {uploadResult.mappings.map((mapping) => (
-                  <tr className="border-t" key={mapping.targetField}>
-                    <td className="px-4 py-3 font-medium">
-                      {mapping.sourceColumn}
-                    </td>
-                    <td className="px-4 py-3">
-                      {templateFieldLabel[mapping.targetField]}
-                    </td>
-                    <td className="px-4 py-3">
-                      {Math.round(mapping.confidence * 100)}%
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={
-                          mapping.confirmed
-                            ? "rounded-lg bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100"
-                            : "rounded-lg bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-100"
-                        }
-                      >
-                        {mapping.confirmed ? "확정" : "추천"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {visibleMappings.map((mapping) => (
+            <div
+              className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm"
+              key={`${mapping.sourceColumn}-${mapping.targetField}`}
+            >
+              <span>
+                {mapping.sourceColumn} → {templateFieldLabel[mapping.targetField]}
+              </span>
+              <StatusBadge tone={mapping.confirmed ? "approved" : "processing"}>
+                {mapping.confirmed ? "확정됨" : "추천됨"}
+              </StatusBadge>
+            </div>
+          ))}
         </div>
-      ) : null}
-    </section>
+      </div>
+    </Panel>
   );
 }
-
-function templateMappingStatusLabel(
-  status: Project["templateMappingStatus"] | TemplateUploadResult["mappingStatus"] | undefined,
-) {
-  if (status === "confirmed") {
-    return "매핑 확정";
-  }
-
-  if (status === "suggested") {
-    return "매핑 추천";
-  }
-
-  return "매핑 없음";
-}
-
-const templateFieldLabel = {
-  date: "날짜",
-  merchant: "사용처",
-  description: "내용",
-  category: "예산 항목",
-  amount: "금액",
-  payerName: "결제자",
-  evidence: "증빙",
-} as const;
 
 function CategoryRow({
   category,
@@ -431,55 +441,64 @@ function CategoryRow({
 }) {
   const usageWidth = Math.min(100, Math.max(0, category.usageRate));
   const isOverBudget = category.remainingAmount < 0;
+  const tone = isOverBudget ? "missing" : usageWidth >= 80 ? "review" : "approved";
 
   return (
-    <article className={isSelected ? "bg-primary/5 p-4" : "p-4"}>
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div className="min-w-0 space-y-2">
+    <article className={isSelected ? "bg-zinc-950/[0.04] py-4" : "py-4"}>
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <Tag className="size-4 text-zinc-500" />
-            <h3 className="font-semibold">{category.name}</h3>
-            {isOverBudget ? (
-              <span className="rounded-lg bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 ring-1 ring-red-100">
-                초과
-              </span>
-            ) : null}
+            <h3 className="font-bold text-zinc-950">{category.name}</h3>
+            <StatusBadge tone={tone}>
+              {isOverBudget ? "초과" : usageWidth >= 80 ? "주의" : "정상"}
+            </StatusBadge>
           </div>
-          <div className="flex flex-wrap gap-1">
-            {category.keywords.map((keyword) => (
-              <span
-                className="rounded-lg bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700 ring-1 ring-zinc-200"
-                key={keyword}
-              >
-                {keyword}
-              </span>
-            ))}
-          </div>
+          <p className="mt-1 text-sm leading-6 text-zinc-600">
+            {category.keywords.join(", ")}
+          </p>
         </div>
-
-        <Button size="sm" variant="outline" onClick={onEdit}>
+        <Button onClick={onEdit} size="sm" variant="outline">
           <Pencil data-icon="inline-start" />
           수정
         </Button>
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-3 space-y-2">
         <div className="flex flex-wrap justify-between gap-2 text-sm">
-          <span className="font-medium text-zinc-600">
+          <span className="font-semibold text-zinc-700">
             {formatCurrency(category.approvedAmount)} /{" "}
             {formatCurrency(category.budgetLimit)}
           </span>
-          <span className={isOverBudget ? "font-medium text-red-700" : "font-medium"}>
+          <span className={isOverBudget ? "font-semibold text-red-700" : "font-semibold"}>
             잔액 {formatCurrency(category.remainingAmount)}
           </span>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-muted">
-          <div
-            className={isOverBudget ? "h-full bg-red-500" : "h-full bg-emerald-500"}
-            style={{ width: `${usageWidth}%` }}
-          />
-        </div>
+        <ProgressBar tone={tone === "missing" ? "missing" : tone === "review" ? "review" : "approved"} value={usageWidth} />
       </div>
     </article>
   );
 }
+
+function templateMappingStatusLabel(
+  status: Project["templateMappingStatus"] | TemplateUploadResult["mappingStatus"] | undefined,
+) {
+  if (status === "confirmed") {
+    return "매핑 확정됨";
+  }
+
+  if (status === "suggested") {
+    return "매핑 추천됨";
+  }
+
+  return "매핑 없음";
+}
+
+const templateFieldLabel = {
+  amount: "금액",
+  category: "예산 항목",
+  date: "지출일자",
+  description: "내용",
+  evidence: "첨부자료",
+  merchant: "거래처명",
+  payerName: "결제자",
+} as const;

@@ -7,7 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: var(--font-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -73,7 +73,7 @@
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
-  --font-sans: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
@@ -128,8 +128,52 @@
     font-family: var(--font-sans);
     font-feature-settings: "tnum";
     text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer utilities {
+  .bf-page-stack {
+    @apply space-y-6;
+  }
+
+  .bf-card-grid {
+    @apply grid gap-3 sm:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .bf-panel-pad {
+    @apply p-4 sm:p-5;
+  }
+
+  .bf-helper {
+    @apply text-sm leading-6 text-zinc-600;
+  }
+
+  .bf-money {
+    @apply font-bold tabular-nums tracking-tight text-zinc-950;
+  }
+
+  .bf-pulse {
+    @apply relative size-2 rounded-full bg-emerald-500;
+  }
+
+  .bf-pulse::after {
+    content: "";
+    @apply absolute inset-0 rounded-full bg-emerald-400 opacity-40;
+    animation: bf-pulse 1.4s ease-out infinite;
+  }
+}
+
+@keyframes bf-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
   }
 }

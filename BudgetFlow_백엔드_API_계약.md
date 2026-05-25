@@ -22,7 +22,7 @@ NEXT_PUBLIC_BUDGETFLOW_API_BASE_URL=https://api.example.com
 
 ### 1.1 인증
 
-MVP 운영 환경에서는 Cognito JWT를 `Authorization` 헤더로 전달하는 방식을 권장한다.
+MVP 운영 환경에서는 Cognito JWT를 `Authorization` 헤더로 전달하는 방식을 권장한다. 
 
 ```http
 Authorization: Bearer <Cognito ID token 또는 Access token>

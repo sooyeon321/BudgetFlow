@@ -12,11 +12,19 @@ const navItems = [
   { href: "/settings", label: "설정", icon: Settings },
 ];
 
-export function DashboardNav() {
+type DashboardNavProps = {
+  placement?: "desktop" | "mobile";
+};
+
+export function DashboardNav({ placement = "desktop" }: DashboardNavProps) {
   const pathname = usePathname();
+  const isMobile = placement === "mobile";
 
   return (
-    <nav className="flex items-center gap-1" aria-label="주요 메뉴">
+    <nav
+      aria-label={isMobile ? "모바일 주요 화면" : "주요 화면"}
+      className={cn(isMobile ? "grid grid-cols-3 gap-1" : "hidden items-center gap-1 md:flex")}
+    >
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive =
@@ -24,19 +32,21 @@ export function DashboardNav() {
 
         return (
           <Link
-            key={item.href}
-            href={item.href}
             aria-current={isActive ? "page" : undefined}
-            aria-label={item.label}
             className={cn(
-              "inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 sm:min-w-auto",
+              "inline-flex items-center justify-center gap-1.5 rounded-lg font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50",
+              isMobile
+                ? "min-h-14 flex-col px-2 text-[0.72rem]"
+                : "h-10 px-3 text-sm",
               isActive
-                ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                ? "bg-zinc-950 text-white shadow-sm"
+                : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950",
             )}
+            href={item.href}
+            key={item.href}
           >
-            <Icon className="size-4" />
-            <span className="sr-only sm:not-sr-only">{item.label}</span>
+            <Icon className={cn(isMobile ? "size-[1.125rem]" : "size-4")} />
+            <span>{item.label}</span>
           </Link>
         );
       })}
