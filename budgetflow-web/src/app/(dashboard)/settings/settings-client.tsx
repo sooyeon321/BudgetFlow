@@ -52,7 +52,16 @@ const reviewPolicies = [
   "OCR 실패",
 ] as const;
 
+const settingsTabs = [
+  { id: "template", label: "엑셀 양식" },
+  { id: "categories", label: "예산 카테고리" },
+  { id: "keywords", label: "분류 키워드" },
+] as const;
+
+type SettingsTab = (typeof settingsTabs)[number]["id"];
+
 export function SettingsClient() {
+  const [activeTab, setActiveTab] = useState<SettingsTab>("template");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const projectQuery = useProject(DEMO_PROJECT_ID);
   const categoriesQuery = useBudgetCategories(DEMO_PROJECT_ID);
@@ -131,111 +140,169 @@ export function SettingsClient() {
         title="엑셀 양식, 컬럼 매핑, 예산 카테고리"
       />
 
+      <Panel className="p-1">
+        <div className="grid gap-1 sm:grid-cols-3" role="tablist" aria-label="설정 범주">
+          {settingsTabs.map((tab) => (
+            <button
+              aria-selected={activeTab === tab.id}
+              className={
+                activeTab === tab.id
+                  ? "h-10 rounded-lg bg-zinc-950 px-3 text-sm font-semibold text-white shadow-sm"
+                  : "h-10 rounded-lg px-3 text-sm font-semibold text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950"
+              }
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              role="tab"
+              type="button"
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </Panel>
+
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-4">
-          <TemplateUploadPanel project={projectQuery.data ?? null} />
+          {activeTab === "template" ? (
+            <TemplateUploadPanel project={projectQuery.data ?? null} />
+          ) : null}
 
-          <Panel className="bf-panel-pad">
-            <SectionToolbar>
-              <div>
-                <h2 className="text-lg font-bold text-zinc-950">예산 카테고리와 한도</h2>
-                <p className="bf-helper mt-1">
-                  카테고리 한도와 키워드는 AI 분류 기준으로 백엔드에 전달됩니다.
-                </p>
-              </div>
-            </SectionToolbar>
+          {activeTab === "categories" ? (
+            <>
+              <Panel className="bf-panel-pad">
+                <SectionToolbar>
+                  <div>
+                    <h2 className="text-lg font-bold text-zinc-950">예산 카테고리와 한도</h2>
+                    <p className="bf-helper mt-1">
+                      카테고리 한도와 키워드는 AI 분류 기준으로 백엔드에 전달됩니다.
+                    </p>
+                  </div>
+                </SectionToolbar>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <SummaryCard
-                label="카테고리 예산"
-                value={formatCurrency(totals.budgetLimit)}
-              />
-              <SummaryCard
-                label="승인 사용액"
-                tone="success"
-                value={formatCurrency(totals.approvedAmount)}
-              />
-            </div>
-
-            <div className="mt-4 divide-y divide-zinc-100">
-              {categoriesQuery.isLoading ? (
-                <p className="py-5 text-sm text-zinc-600">
-                  카테고리를 불러오는 중입니다.
-                </p>
-              ) : null}
-
-              {categoriesQuery.data?.map((category) => (
-                <CategoryRow
-                  category={category}
-                  isSelected={category.id === selectedCategoryId}
-                  key={category.id}
-                  onEdit={() => setSelectedCategoryId(category.id)}
-                />
-              ))}
-            </div>
-          </Panel>
-
-          <Panel className="bf-panel-pad">
-            <SectionToolbar
-              actions={
-                <Button
-                  onClick={() => setSelectedCategoryId(null)}
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                >
-                  <Plus data-icon="inline-start" />
-                  새 항목
-                </Button>
-              }
-            >
-              <h2 className="text-lg font-bold text-zinc-950">
-                {selectedCategory ? "카테고리 수정" : "카테고리 추가"}
-              </h2>
-              <p className="bf-helper mt-1">쉼표로 분류 키워드를 입력합니다.</p>
-            </SectionToolbar>
-
-            <form className="mt-5 space-y-4" onSubmit={onSubmit}>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <FormField
-                  label="카테고리명"
-                  error={form.formState.errors.name?.message}
-                >
-                  <TextInput placeholder="다과비" {...form.register("name")} />
-                </FormField>
-                <FormField
-                  label="예산 한도"
-                  error={form.formState.errors.budgetLimit?.message}
-                >
-                  <TextInput
-                    inputMode="numeric"
-                    step="10000"
-                    type="number"
-                    {...form.register("budgetLimit")}
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <SummaryCard
+                    label="카테고리 예산"
+                    value={formatCurrency(totals.budgetLimit)}
                   />
-                </FormField>
+                  <SummaryCard
+                    label="승인 사용액"
+                    tone="success"
+                    value={formatCurrency(totals.approvedAmount)}
+                  />
+                </div>
+
+                <div className="mt-4 divide-y divide-zinc-100">
+                  {categoriesQuery.isLoading ? (
+                    <p className="py-5 text-sm text-zinc-600">
+                      카테고리를 불러오는 중입니다.
+                    </p>
+                  ) : null}
+
+                  {categoriesQuery.data?.map((category) => (
+                    <CategoryRow
+                      category={category}
+                      isSelected={category.id === selectedCategoryId}
+                      key={category.id}
+                      onEdit={() => setSelectedCategoryId(category.id)}
+                    />
+                  ))}
+                </div>
+              </Panel>
+
+              <Panel className="bf-panel-pad">
+                <SectionToolbar
+                  actions={
+                    <Button
+                      onClick={() => setSelectedCategoryId(null)}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      <Plus data-icon="inline-start" />
+                      새 항목
+                    </Button>
+                  }
+                >
+                  <h2 className="text-lg font-bold text-zinc-950">
+                    {selectedCategory ? "카테고리 수정" : "카테고리 추가"}
+                  </h2>
+                  <p className="bf-helper mt-1">쉼표로 분류 키워드를 입력합니다.</p>
+                </SectionToolbar>
+
+                <form className="mt-5 space-y-4" onSubmit={onSubmit}>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField
+                      label="카테고리명"
+                      error={form.formState.errors.name?.message}
+                    >
+                      <TextInput placeholder="다과비" {...form.register("name")} />
+                    </FormField>
+                    <FormField
+                      label="예산 한도"
+                      error={form.formState.errors.budgetLimit?.message}
+                    >
+                      <TextInput
+                        inputMode="numeric"
+                        step="10000"
+                        type="number"
+                        {...form.register("budgetLimit")}
+                      />
+                    </FormField>
+                  </div>
+                  <FormField
+                    label="분류 키워드"
+                    error={form.formState.errors.keywordsText?.message}
+                  >
+                    <TextArea
+                      placeholder="간식, 커피, 음료"
+                      {...form.register("keywordsText")}
+                    />
+                  </FormField>
+                  <Button disabled={isMutating} type="submit">
+                    {isMutating ? (
+                      <Loader2 className="animate-spin" data-icon="inline-start" />
+                    ) : selectedCategory ? (
+                      <Save data-icon="inline-start" />
+                    ) : (
+                      <Plus data-icon="inline-start" />
+                    )}
+                    {selectedCategory ? "수정 저장" : "추가"}
+                  </Button>
+                </form>
+              </Panel>
+            </>
+          ) : null}
+
+          {activeTab === "keywords" ? (
+            <Panel className="bf-panel-pad">
+              <SectionToolbar>
+                <div>
+                  <h2 className="text-lg font-bold text-zinc-950">분류 키워드</h2>
+                  <p className="bf-helper mt-1">
+                    예산 카테고리별 키워드는 Slack 입력을 자동 분류하는 기준입니다.
+                  </p>
+                </div>
+              </SectionToolbar>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {(categoriesQuery.data ?? []).map((category) => (
+                  <div
+                    className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-3"
+                    key={category.id}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <strong className="text-sm text-zinc-950">{category.name}</strong>
+                      <StatusBadge tone={category.remainingAmount < 0 ? "missing" : "approved"}>
+                        {category.remainingAmount < 0 ? "초과" : "사용 가능"}
+                      </StatusBadge>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-zinc-600">
+                      {category.keywords.join(", ")}
+                    </p>
+                  </div>
+                ))}
               </div>
-              <FormField
-                label="분류 키워드"
-                error={form.formState.errors.keywordsText?.message}
-              >
-                <TextArea
-                  placeholder="간식, 커피, 음료"
-                  {...form.register("keywordsText")}
-                />
-              </FormField>
-              <Button disabled={isMutating} type="submit">
-                {isMutating ? (
-                  <Loader2 className="animate-spin" data-icon="inline-start" />
-                ) : selectedCategory ? (
-                  <Save data-icon="inline-start" />
-                ) : (
-                  <Plus data-icon="inline-start" />
-                )}
-                {selectedCategory ? "수정 저장" : "추가"}
-              </Button>
-            </form>
-          </Panel>
+            </Panel>
+          ) : null}
         </div>
 
         <aside className="space-y-4">

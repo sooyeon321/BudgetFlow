@@ -11,6 +11,7 @@ import {
   Loader2,
   Lock,
   RefreshCw,
+  Search,
   X,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -80,12 +81,14 @@ const evidenceToneByStatus: Record<EvidenceStatus, StatusTone> = {
 
 export function ExpensesClient() {
   const [status, setStatus] = useState<ExpenseStatus | "all">("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedExpenseId, setSelectedExpenseId] = useState<
     string | null | undefined
   >(undefined);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [confirmExportOpen, setConfirmExportOpen] = useState(false);
   const projectQuery = useProject(DEMO_PROJECT_ID);
+  const allExpensesQuery = useExpenses(DEMO_PROJECT_ID, "all");
   const expensesQuery = useExpenses(DEMO_PROJECT_ID, status);
   const summaryQuery = useExpenseSummary(DEMO_PROJECT_ID);
   const categoriesQuery = useBudgetCategories(DEMO_PROJECT_ID);
@@ -101,19 +104,53 @@ export function ExpensesClient() {
     [categoriesQuery.data],
   );
   const isRefreshing = expensesQuery.isFetching && !expensesQuery.isLoading;
-  const firstRiskyExpenseId = useMemo(() => {
+  const allExpenses = useMemo(
+    () => allExpensesQuery.data ?? expensesQuery.data ?? [],
+    [allExpensesQuery.data, expensesQuery.data],
+  );
+  const visibleExpenses = useMemo(() => {
     const expenses = expensesQuery.data ?? [];
+    const normalizedQuery = searchQuery.trim().toLowerCase();
 
+    if (!normalizedQuery) {
+      return expenses;
+    }
+
+    return expenses.filter((expense) =>
+      [
+        expense.merchant,
+        expense.description,
+        expense.payerName,
+        categoryNameById.get(expense.categoryId) ?? "",
+        expense.reviewReason ?? "",
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedQuery),
+    );
+  }, [categoryNameById, expensesQuery.data, searchQuery]);
+  const filterCounts = useMemo(() => {
+    const counts: Partial<Record<ExpenseStatus | "all", number>> = {
+      all: allExpenses.length,
+    };
+
+    allExpenses.forEach((expense) => {
+      counts[expense.status] = (counts[expense.status] ?? 0) + 1;
+    });
+
+    return counts;
+  }, [allExpenses]);
+  const firstRiskyExpenseId = useMemo(() => {
     return (
-      expenses.find((expense) => expense.evidenceStatus === "none") ??
-      expenses.find((expense) => expense.status === "needs_review") ??
-      expenses[0]
+      visibleExpenses.find((expense) => expense.evidenceStatus === "none") ??
+      visibleExpenses.find((expense) => expense.status === "needs_review") ??
+      visibleExpenses[0]
     )?.id;
-  }, [expensesQuery.data]);
+  }, [visibleExpenses]);
   const effectiveSelectedExpenseId =
     selectedExpenseId === undefined ? firstRiskyExpenseId : selectedExpenseId;
   const selectedExpense =
-    expensesQuery.data?.find(
+    visibleExpenses.find(
       (expense) => expense.id === effectiveSelectedExpenseId,
     ) ?? null;
   const latestCompletedExport =
@@ -164,7 +201,7 @@ export function ExpensesClient() {
             label="전체 지출"
             note="Slack 접수 기준 누적 건수"
             status={`${summaryQuery.data?.totalExpenseCount ?? 0}건`}
-            value={formatCurrency(totalExpenseAmount(expensesQuery.data ?? []))}
+            value={formatCurrency(totalExpenseAmount(allExpenses))}
           />
           <SummaryCard
             label="승인 금액"
@@ -204,8 +241,21 @@ export function ExpensesClient() {
         <section className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
           <div className="min-w-0 space-y-4">
             <Panel>
-              <div className="border-b border-zinc-200 p-4">
-                <SectionToolbar>
+              <div className="space-y-3 border-b border-zinc-200 p-4">
+                <SectionToolbar
+                  actions={
+                    <label className="relative w-full sm:w-72">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+                      <TextInput
+                        aria-label="지출 검색"
+                        className="h-9 pl-9"
+                        onChange={(event) => setSearchQuery(event.target.value)}
+                        placeholder="사용처, 설명, 결제자 검색"
+                        value={searchQuery}
+                      />
+                    </label>
+                  }
+                >
                   <div className="flex flex-wrap gap-2" aria-label="지출 상태 필터">
                     {expenseStatusFilterOptions.map((option) => (
                       <button
@@ -220,10 +270,22 @@ export function ExpensesClient() {
                         type="button"
                       >
                         {option.label}
+                        <span
+                          className={
+                            status === option.value
+                              ? "ml-2 rounded bg-white/20 px-1.5 py-0.5 text-[0.68rem]"
+                              : "ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-[0.68rem] text-zinc-500"
+                          }
+                        >
+                          {filterCounts[option.value] ?? 0}
+                        </span>
                       </button>
                     ))}
                   </div>
                 </SectionToolbar>
+                <p className="text-xs font-medium text-zinc-500">
+                  {visibleExpenses.length}건 표시 · 위험 항목은 먼저 선택됩니다.
+                </p>
               </div>
 
               <div className="hidden overflow-x-auto md:block">
@@ -248,7 +310,7 @@ export function ExpensesClient() {
                       </tr>
                     ) : null}
 
-                    {expensesQuery.data?.map((expense) => (
+                    {visibleExpenses.map((expense) => (
                       <ExpenseTableRow
                         categoryName={categoryNameById.get(expense.categoryId) ?? "미분류"}
                         expense={expense}
@@ -258,10 +320,10 @@ export function ExpensesClient() {
                       />
                     ))}
 
-                    {expensesQuery.data?.length === 0 ? (
+                    {visibleExpenses.length === 0 ? (
                       <tr>
                         <td className="px-4 py-8 text-center text-zinc-600" colSpan={7}>
-                          선택한 상태의 지출 내역이 없습니다.
+                          조건에 맞는 지출 내역이 없습니다.
                         </td>
                       </tr>
                     ) : null}
@@ -270,7 +332,7 @@ export function ExpensesClient() {
               </div>
 
               <div className="divide-y divide-zinc-100 md:hidden">
-                {expensesQuery.data?.map((expense) => (
+                {visibleExpenses.map((expense) => (
                   <ExpenseMobileCard
                     categoryName={categoryNameById.get(expense.categoryId) ?? "미분류"}
                     expense={expense}

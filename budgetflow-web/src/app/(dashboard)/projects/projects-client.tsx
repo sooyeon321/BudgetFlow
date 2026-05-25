@@ -248,6 +248,14 @@ export function ProjectsClient() {
             <p className="py-5 text-sm text-zinc-600">프로젝트를 불러오는 중입니다.</p>
           ) : null}
 
+          <div className="hidden grid-cols-[minmax(0,1fr)_180px_120px_120px_96px] gap-3 bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-500 md:grid">
+            <span>프로젝트</span>
+            <span>예산 사용 흐름</span>
+            <span>양식</span>
+            <span>상태</span>
+            <span className="text-right">작업</span>
+          </div>
+
           {projectsQuery.data?.map((project) => (
             <ProjectRow key={project.id} project={project} />
           ))}
@@ -259,9 +267,10 @@ export function ProjectsClient() {
 
 function ProjectRow({ project }: { project: Project }) {
   const isConfirmed = project.templateMappingStatus === "confirmed";
+  const usage = project.status === "closed" ? 100 : project.totalBudget > 1_000_000 ? 68 : 42;
 
   return (
-    <article className="grid gap-3 py-4 md:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto] md:items-center">
+    <article className="grid gap-3 px-3 py-4 transition-colors hover:bg-zinc-50 md:grid-cols-[minmax(0,1fr)_180px_120px_120px_96px] md:items-center">
       <div className="min-w-0">
         <strong className="block truncate text-sm font-bold text-zinc-950">
           {project.name}
@@ -274,7 +283,16 @@ function ProjectRow({ project }: { project: Project }) {
           <span>{formatDate(project.createdAt)} 생성</span>
         </p>
       </div>
-      <span className="bf-money text-sm">{formatCurrency(project.totalBudget)}</span>
+      <div className="space-y-1.5">
+        <div className="flex justify-between gap-2 text-xs">
+          <span className="text-zinc-500">예산</span>
+          <span className="bf-money">{formatCurrency(project.totalBudget)}</span>
+        </div>
+        <ProgressBar
+          tone={project.status === "closed" ? "approved" : usage > 75 ? "review" : "processing"}
+          value={usage}
+        />
+      </div>
       <StatusBadge tone={isConfirmed ? "approved" : "processing"}>
         <FileSpreadsheet className="mr-1 size-3" />
         {isConfirmed ? "양식 확정" : "매핑 추천"}
