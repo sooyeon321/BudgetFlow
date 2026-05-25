@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BudgetFlow 설정</title>
+  <link rel="stylesheet" href="css/budgetflow.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="index.html"><span class="brand-mark">BF</span><span>BudgetFlow</span></a>
+      <nav class="topnav" aria-label="주요 화면">
+        <a class="nav-link" href="projects.html">프로젝트</a>
+        <a class="nav-link" href="expenses.html">지출</a>
+        <a class="nav-link" href="settings.html" aria-current="page">설정</a>
+      </nav>
+      <div class="top-actions">
+        <span class="badge">새봄 축제 운영비</span>
+        <a class="btn primary" href="expenses.html">지출 검토로 이동</a>
+      </div>
+    </header>
+
+    <main class="page">
+      <div class="page-header">
+        <div>
+          <p class="eyebrow">Settings</p>
+          <h1>엑셀 양식, 컬럼 매핑, 예산 카테고리</h1>
+          <p class="lead">기관 제출용 파일을 만들기 위해 양식 업로드와 관리자 확정 단계를 분리했습니다. AI 추천은 출발점이고 최종 매핑은 사람이 확정합니다.</p>
+        </div>
+      </div>
+
+      <section class="settings-layout">
+        <div class="grid">
+          <section class="panel panel-pad">
+            <div class="panel-header flush">
+              <div>
+                <h2>엑셀 양식 업로드</h2>
+                <p id="uploadState" class="lead lead-sm">새봄축제_지출내역서_양식.xlsx · 매핑 확정됨</p>
+              </div>
+              <label class="btn" for="templateUpload">파일 선택</label>
+              <input id="templateUpload" type="file" accept=".xlsx,.xls" hidden>
+            </div>
+            <p class="context-note section-content">양식 파일과 컬럼 매핑이 모두 확정되어야 제출용 엑셀 생성 버튼이 명확하게 활성화됩니다.</p>
+          </section>
+
+          <section class="panel panel-pad">
+            <div class="panel-header">
+              <div>
+                <h2>LLM 컬럼 매핑 추천</h2>
+                <p class="lead lead-sm">추천값은 관리자 확정 전까지 제출용 엑셀 생성에 사용하지 않습니다.</p>
+              </div>
+              <button id="confirmMapping" class="btn primary" type="button">추천 매핑 확정</button>
+            </div>
+            <div class="mapping-list">
+              <div class="mapping-row"><span>날짜 → 지출일자</span><span class="status approved" data-mapping-status>확정됨</span></div>
+              <div class="mapping-row"><span>사용처 → 거래처명</span><span class="status approved" data-mapping-status>확정됨</span></div>
+              <div class="mapping-row"><span>카테고리 → 예산 항목</span><span class="status processing" data-mapping-status>추천됨</span></div>
+              <div class="mapping-row"><span>증빙 링크 → 첨부자료</span><span class="status processing" data-mapping-status>추천됨</span></div>
+            </div>
+          </section>
+
+          <section class="panel panel-pad">
+            <h2>예산 카테고리와 한도</h2>
+            <div class="category-list section-content">
+              <div class="category-row">
+                <div>
+                  <div class="card-line"><strong>회의비</strong><span class="money">₩820,000 / ₩1,000,000</span></div>
+                  <div class="progress progress-spaced warn" style="--value:82%;"><span></span></div>
+                </div>
+                <span class="status review">주의</span>
+              </div>
+              <div class="category-row">
+                <div>
+                  <div class="card-line"><strong>운영비</strong><span class="money">₩1,420,000 / ₩2,200,000</span></div>
+                  <div class="progress progress-spaced" style="--value:64%;--bar:var(--success);"><span></span></div>
+                </div>
+                <span class="status approved">정상</span>
+              </div>
+              <div class="category-row">
+                <div>
+                  <div class="card-line"><strong>홍보비</strong><span class="money">₩640,000 / ₩900,000</span></div>
+                  <div class="progress progress-spaced" style="--value:71%;--bar:var(--processing);"><span></span></div>
+                </div>
+                <span class="status processing">사용 중</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="grid">
+          <section class="panel panel-pad">
+            <h2>검토 필요 정책</h2>
+            <div class="review-reasons section-content">
+              <p class="reason">AI 신뢰도 낮음</p>
+              <p class="reason">예산 초과 가능</p>
+              <p class="reason">영수증 없음</p>
+              <p class="reason">필수 필드 누락</p>
+              <p class="reason">OCR 실패</p>
+            </div>
+          </section>
+
+          <section class="panel panel-pad">
+            <h2>엑셀 생성 전 확인</h2>
+            <div class="checklist-list">
+              <p class="check-item">카테고리별 한도와 승인 사용액을 확인합니다.</p>
+              <p class="check-item">추천 컬럼은 관리자가 확정한 뒤 사용합니다.</p>
+              <p class="check-item">검토 필요 항목은 생성 파일에서 제외된다는 경고를 확인합니다.</p>
+            </div>
+          </section>
+
+          <section class="panel panel-pad">
+            <h2>분류 키워드</h2>
+            <form id="keywordForm" class="action-row section-content">
+              <input id="keywordInput" class="input field-fill" placeholder="예: 다과, 현수막, 교통비">
+              <button class="btn" type="submit">추가</button>
+            </form>
+            <div id="keywordList" class="keyword-list section-content">
+              <div class="keyword-row"><span>회의비: 커피, 회의실, 다과</span><button class="btn" type="button">삭제</button></div>
+              <div class="keyword-row"><span>홍보비: 인쇄, 포스터, 배너</span><button class="btn" type="button">삭제</button></div>
+              <div class="keyword-row"><span>운영비: 소모품, 안내물품</span><button class="btn" type="button">삭제</button></div>
+            </div>
+          </section>
+        </aside>
+      </section>
+    </main>
+  </div>
+  <nav class="bottom-tabs" aria-label="모바일 주요 화면">
+    <a href="projects.html">프로젝트</a>
+    <a href="expenses.html">지출</a>
+    <a href="settings.html" aria-current="page">설정</a>
+  </nav>
+  <script src="js/budgetflow.js"></script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BudgetFlow 로그인</title>
+  <link rel="stylesheet" href="css/budgetflow.css">
+</head>
+<body>
+  <main class="login-wrap">
+    <section class="login-preview" aria-label="BudgetFlow 서비스 소개">
+      <div class="login-copy">
+        <a class="brand" href="index.html">
+          <span class="brand-mark">BF</span>
+          <span>BudgetFlow</span>
+        </a>
+        <p class="eyebrow">Slack-first budget operations</p>
+        <h1>Slack 지출 메시지를 검토 가능한 정산 업무로 바꿉니다.</h1>
+        <p class="lead">팀원은 Slack에 지출 설명과 증빙을 남기고, 회계 담당자는 BudgetFlow에서 분류 결과를 확인해 승인한 뒤 제출용 엑셀 파일을 생성합니다.</p>
+        <div class="service-points" aria-label="서비스 핵심 흐름">
+          <div>
+            <strong>메신저 입력</strong>
+            <p>프로젝트별 Slack 채널에서 지출 설명과 자료를 수집합니다.</p>
+          </div>
+          <div>
+            <strong>AI 분류</strong>
+            <p>금액, 사용처, 카테고리, 위험 신호를 자동으로 정리합니다.</p>
+          </div>
+          <div>
+            <strong>관리자 검토</strong>
+            <p>영수증 없음, 낮은 신뢰도, 예산 초과 가능성을 사람이 확인합니다.</p>
+          </div>
+          <div>
+            <strong>엑셀 제출</strong>
+            <p>승인된 항목만 기관 제출용 지출내역서에 포함합니다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="login-form-area" aria-label="로그인">
+      <div class="panel panel-pad login-card">
+        <a class="brand login-mobile-brand" href="index.html">
+          <span class="brand-mark">BF</span>
+          <span>BudgetFlow</span>
+        </a>
+        <p class="eyebrow">Sign in</p>
+        <h2>로그인</h2>
+
+        <form id="loginForm" class="grid login-form" novalidate>
+          <label class="label">이메일
+            <input id="email" class="input" type="email" value="admin@budgetflow.kr" autocomplete="email" inputmode="email" required>
+          </label>
+          <label class="label">비밀번호
+            <span class="input-with-action">
+              <input id="password" class="input" type="password" value="budgetflow" autocomplete="current-password" required>
+              <button type="button" data-toggle-password>보기</button>
+            </span>
+          </label>
+          <button class="btn primary full" type="submit">로그인</button>
+        </form>
+      </div>
+    </section>
+  </main>
+  <script src="js/budgetflow.js"></script>
+</body>
+</html>
