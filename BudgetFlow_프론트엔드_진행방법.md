@@ -27,7 +27,7 @@
 
 ```
 1. Next.js 프로젝트 생성
-   npx create-next-app@latest budgetflow-web --typescript --tailwind --app
+   npx create-next-app@latest budgetflow-frontend --typescript --tailwind --app
 
 2. shadcn/ui 설치
    npx shadcn@latest init

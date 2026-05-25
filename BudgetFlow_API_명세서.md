@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 | --- | --- |
 | 목적 | BudgetFlow 프론트엔드 MVP와 백엔드 간 API 계약 정의 |
-| 기준 | `budgetflow-web/src/lib/domain.ts`, `budgetflow-web/src/lib/api/budgetflow-api.ts`, form schema |
+| 기준 | `budgetflow-frontend/src/lib/domain.ts`, `budgetflow-frontend/src/lib/api/budgetflow-api.ts`, form schema |
 | 형식 | 예시 payload 없이 표 기반으로 요청/응답 스키마와 규칙만 정의 |
 | 포함 API | 프론트엔드가 직접 호출하는 Project, Expense, Budget Category, Template, Export API |
 | 제외 API | Slack Event/Webhook 수신, OCR/LLM 비동기 처리, S3 원본 파일 저장 등 백엔드/봇 내부 API |

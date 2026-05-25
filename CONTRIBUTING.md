@@ -76,7 +76,7 @@ git rebase upstream/main
 
 ```
 BudgetFlow/
-├── budgetflow-web/          # 프론트엔드 (Next.js)
+├── budgetflow-frontend/          # 프론트엔드 (Next.js)
 │   ├── src/
 │   │   ├── app/             # App Router 페이지
 │   │   ├── components/      # 공통 컴포넌트
@@ -92,7 +92,7 @@ BudgetFlow/
 ## 프론트엔드 로컬 실행
 
 ```bash
-cd budgetflow-web
+cd budgetflow-frontend
 npm install
 npm run dev
 # http://localhost:3000 에서 확인
@@ -102,4 +102,4 @@ npm run dev
 ## API 계약
 
 팀원 간 API 계약은 `BudgetFlow_API_명세서.md`를 기준으로 합니다.  
-백엔드 연동 분석은 `budgetflow-web/docs/backend-integration-review.md`를 참고하세요.
+백엔드 연동 분석은 `budgetflow-frontend/docs/backend-integration-review.md`를 참고하세요.

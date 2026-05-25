@@ -90,7 +90,7 @@ MVP 1차 기준:
 
 | Slice | 범위 | 현재 상태 | 주요 파일 |
 | --- | --- | --- | --- |
-| 1 | Next.js App Router 스캐폴딩, provider, route group | 완료 | `budgetflow-web/src/app`, `budgetflow-web/src/app/providers.tsx` |
+| 1 | Next.js App Router 스캐폴딩, provider, route group | 완료 | `budgetflow-frontend/src/app`, `budgetflow-frontend/src/app/providers.tsx` |
 | 2 | 도메인 타입, Mock API, Query hooks | 완료 | `src/lib/domain.ts`, `src/lib/api/budgetflow-api.ts`, `src/lib/hooks/use-budgetflow.ts` |
 | 3 | 로그인 화면, Mock Auth, Cognito placeholder | 완료 | `src/app/(auth)/login`, `src/lib/auth/auth-api.ts` |
 | 4 | 프로젝트 목록/생성 | 완료 | `src/app/(dashboard)/projects/projects-client.tsx` |
@@ -178,8 +178,8 @@ MVP 1차 기준:
 ## 11. 다음 개발 단계 제안
 
 1. **현재 프론트 MVP 커밋 정리**
-   - `.env.example`이 git에 포함되는지 확인한다. 현재 `budgetflow-web/.gitignore`에는 `!.env.example` 예외가 추가되어 있다.
-   - `budgetflow-web` 전체, `.gitignore`, MVP 정리 문서를 하나의 Lore commit으로 묶는다.
+   - `.env.example`이 git에 포함되는지 확인한다. 현재 `budgetflow-frontend/.gitignore`에는 `!.env.example` 예외가 추가되어 있다.
+   - `budgetflow-frontend` 전체, `.gitignore`, MVP 정리 문서를 하나의 Lore commit으로 묶는다.
 2. **AWS 연동 준비 브랜치**
    - `src/lib/api`에 `NEXT_PUBLIC_BUDGETFLOW_API_BASE_URL` 기반 fetch client를 추가하되 Mock fallback을 유지한다.
    - `src/lib/auth`에 Cognito 설정값 존재 여부에 따른 실제/Mock 분기 구조를 둔다.

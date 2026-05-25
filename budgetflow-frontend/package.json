@@ -1,5 +1,5 @@
 {
-  "name": "budgetflow-web",
+  "name": "budgetflow-frontend",
   "version": "0.1.0",
   "private": true,
   "scripts": {
