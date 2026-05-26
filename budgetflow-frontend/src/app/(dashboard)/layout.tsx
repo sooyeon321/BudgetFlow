@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { BrandLink, StatusBadge } from "@/components/budgetflow-ui";
+import { PageTransition } from "@/components/page-transition";
 
 import { DashboardNav } from "./dashboard-nav";
 
@@ -28,7 +29,7 @@ export default function DashboardLayout({
       </header>
 
       <main className="mx-auto min-w-0 w-full max-w-7xl flex-1 overflow-x-hidden overflow-y-auto px-4 pb-6 pt-6 sm:px-6 md:overflow-visible md:py-8">
-        {children}
+        <PageTransition>{children}</PageTransition>
       </main>
 
       <div className="z-40 shrink-0 border-t border-zinc-200 bg-white/95 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_32px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
