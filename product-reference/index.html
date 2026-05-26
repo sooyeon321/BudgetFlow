@@ -1,66 +1,164 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BudgetFlow UI Prototype</title>
-  <link rel="stylesheet" href="css/budgetflow.css">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>BudgetFlow — 프로토타입</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <style>
+    body { background: var(--surface); }
+    .launcher {
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 48px 24px;
+    }
+    .launcher-header { text-align: center; margin-bottom: 48px; }
+    .brand-logo {
+      display: flex; align-items: center; gap: 10px;
+      justify-content: center; margin-bottom: 12px;
+    }
+    .brand-logo svg { width: 28px; height: 28px; }
+    .brand-name { font-size: 24px; font-weight: 800; letter-spacing: -.03em; }
+    .brand-tag {
+      display: inline-block; margin-top: 6px;
+      padding: 3px 10px; border-radius: 4px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      font-size: 11.5px; font-weight: 600; color: var(--muted);
+      letter-spacing: .04em;
+    }
+    .launcher-sub {
+      font-size: 14px; color: var(--muted); margin-top: 10px; max-width: 420px; line-height: 1.7;
+    }
+    .screen-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 16px; max-width: 760px; width: 100%;
+    }
+    .screen-card {
+      display: flex; flex-direction: column; gap: 10px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 24px;
+      text-decoration: none; color: var(--fg);
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .screen-card:hover {
+      border-color: var(--border-strong);
+      box-shadow: 0 4px 16px rgba(0,0,0,.06);
+    }
+    .screen-icon {
+      width: 40px; height: 40px; border-radius: var(--radius);
+      background: var(--surface-2); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--fg-2);
+    }
+    .screen-icon svg { width: 20px; height: 20px; }
+    .screen-title { font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+    .screen-route {
+      font-size: 11.5px; font-family: var(--font-mono);
+      color: var(--muted); margin-top: -4px;
+    }
+    .screen-desc { font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+    .screen-card.featured {
+      grid-column: 1 / -1;
+      flex-direction: row; gap: 20px; align-items: flex-start;
+      border-color: var(--fg); border-width: 1.5px;
+    }
+    .screen-card.featured .screen-icon {
+      background: var(--fg); color: var(--bg); border-color: var(--fg);
+      flex-shrink: 0;
+    }
+    .screen-card.featured .screen-content { flex: 1; }
+    .screen-card.featured .screen-title { font-size: 16px; }
+    .screen-featured-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 7px; border-radius: 3px;
+      background: var(--fg); color: var(--bg);
+      font-size: 10.5px; font-weight: 700; letter-spacing: .04em;
+      margin-bottom: 6px;
+    }
+    .launcher-footer {
+      margin-top: 40px; font-size: 12px; color: var(--subtle); text-align: center; line-height: 1.7;
+    }
+    @media (max-width: 600px) {
+      .screen-grid { grid-template-columns: 1fr; }
+      .screen-card.featured { flex-direction: column; }
+    }
+  </style>
 </head>
 <body>
-  <main class="page compact">
-    <header class="page-header">
-      <a class="brand" href="index.html" aria-label="BudgetFlow 홈">
-        <span class="brand-mark">BF</span>
-        <span>BudgetFlow</span>
-      </a>
-      <span class="badge">내부 시연용 프로토타입</span>
-    </header>
+  <div class="launcher">
+    <div class="launcher-header">
+      <div class="brand-logo">
+        <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="12" width="4" height="6" rx="1" fill="currentColor"/>
+          <rect x="8" y="7" width="4" height="11" rx="1" fill="currentColor"/>
+          <rect x="14" y="3" width="4" height="15" rx="1" fill="currentColor"/>
+        </svg>
+        <span class="brand-name">BudgetFlow</span>
+      </div>
+      <span class="brand-tag">PROTOTYPE v0.1</span>
+      <p class="launcher-sub">팀 예산 정산 자동화 — Slack 지출 입력 → AI 분석 → 관리자 검토 → 엑셀 다운로드</p>
+    </div>
 
-    <p class="eyebrow">Admin workflow prototype</p>
-    <h1>Slack 지출 입력부터 관리자 검토, 엑셀 다운로드까지 이어지는 운영 도구 화면입니다.</h1>
-    <p class="lead">각 화면은 독립 HTML 파일로 분리되어 있습니다. 데스크톱에서는 높은 정보 밀도를, 모바일에서는 하단 탭과 카드형 검토 흐름을 기준으로 설계했습니다.</p>
+    <div class="screen-grid">
+      <!-- Featured: Expenses (핵심 화면) -->
+      <a href="expenses.html" class="screen-card featured">
+        <div class="screen-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+            <rect x="9" y="3" width="6" height="4" rx="1"/>
+            <line x1="9" y1="12" x2="15" y2="12"/>
+            <line x1="9" y1="16" x2="12" y2="16"/>
+          </svg>
+        </div>
+        <div class="screen-content">
+          <span class="screen-featured-badge">핵심 화면</span>
+          <div class="screen-title">지출 관리</div>
+          <div class="screen-route">/expenses</div>
+          <div class="screen-desc" style="margin-top:8px">요약 카드 · 상태 필터 · 테이블 + 검토 패널 분할 화면 · 5초 폴링 · 정산 마감 · 엑셀 내보내기</div>
+        </div>
+      </a>
 
-    <section class="launcher-grid section-block" aria-label="화면 바로가기">
-      <a class="launcher-card" href="login.html">
-        <span class="badge">/login</span>
-        <span>
-          <h2>로그인</h2>
-          <p class="helper-text">데스크톱은 서비스 맥락을, 모바일은 입력과 로그인 버튼만 남긴 진입 화면입니다.</p>
-        </span>
+      <a href="login.html" class="screen-card">
+        <div class="screen-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/>
+            <polyline points="10 17 15 12 10 7"/>
+            <line x1="15" y1="12" x2="3" y2="12"/>
+          </svg>
+        </div>
+        <div class="screen-title">로그인</div>
+        <div class="screen-route">/login</div>
+        <div class="screen-desc">Mock 인증 · Cognito 전환 준비 메시지</div>
       </a>
-      <a class="launcher-card" href="projects.html">
-        <span class="badge">/projects</span>
-        <span>
-          <h2>프로젝트</h2>
-          <p class="helper-text">행사 단위 예산, Slack 채널, 엑셀 양식 상태와 생성 폼을 배치했습니다.</p>
-        </span>
-      </a>
-      <a class="launcher-card" href="expenses.html">
-        <span class="badge">/expenses</span>
-        <span>
-          <h2>지출 목록</h2>
-          <p class="helper-text">목록과 우측 검토 패널, 승인/반려/엑셀 생성 흐름을 가장 완성도 높게 구성했습니다.</p>
-        </span>
-      </a>
-      <a class="launcher-card" href="settings.html">
-        <span class="badge">/settings</span>
-        <span>
-          <h2>설정</h2>
-          <p class="helper-text">엑셀 양식, LLM 컬럼 매핑, 예산 카테고리와 분류 키워드를 관리합니다.</p>
-        </span>
-      </a>
-    </section>
 
-    <section class="flow-line" aria-label="핵심 업무 흐름">
-      <div class="flow-node"><strong>Slack 접수</strong><span>팀원은 채널에 설명과 증빙을 제출</span></div>
-      <div class="flow-node"><strong>비동기 분석</strong><span>LLM이 금액, 카테고리, 위험 신호를 추출</span></div>
-      <div class="flow-node"><strong>검토 필요</strong><span>신뢰도 낮음, 증빙 없음, 예산 초과 가능성 표시</span></div>
-      <div class="flow-node"><strong>관리자 승인</strong><span>필드 수정 후 승인 또는 반려 처리</span></div>
-      <div class="flow-node"><strong>정산 마감</strong><span>수동으로 프로젝트 정산을 닫음</span></div>
-      <div class="flow-node"><strong>엑셀 생성</strong><span>승인 완료 항목만 포함해 다운로드</span></div>
-    </section>
+      <a href="projects.html" class="screen-card">
+        <div class="screen-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
+          </svg>
+        </div>
+        <div class="screen-title">프로젝트</div>
+        <div class="screen-route">/projects</div>
+        <div class="screen-desc">프로젝트 목록 · 예산 현황 · 프로젝트 생성 패널</div>
+      </a>
 
-    <p class="context-note section-block">시각 시스템은 흰색/neutral 표면, near-black CTA, 얇은 border, 8-12px radius, 상태색 중심으로 고정했습니다. 장식용 그래픽보다 금액, 상태, 검토 사유, 다음 액션이 가까이 보이도록 설계했습니다.</p>
-  </main>
+      <a href="settings.html" class="screen-card">
+        <div class="screen-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+          </svg>
+        </div>
+        <div class="screen-title">설정</div>
+        <div class="screen-route">/settings</div>
+        <div class="screen-desc">엑셀 양식 · LLM 컬럼 매핑 · 예산 카테고리 · 분류 키워드</div>
+      </a>
+    </div>
+
+    <div class="launcher-footer">
+      Mock 데이터 기반 프로토타입 · 실제 서버 연결 없음<br/>
+      로그인은 임의 이메일/비밀번호로 통과됩니다
+    </div>
+  </div>
 </body>
 </html>

@@ -1,146 +1,867 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BudgetFlow 지출 목록</title>
-  <link rel="stylesheet" href="css/budgetflow.css">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>BudgetFlow — 지출관리</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <style>
+    /* Expenses page layout */
+    .exp-topbar {
+      display:flex; align-items:center; gap:10px;
+      margin-bottom:16px; flex-wrap:wrap;
+    }
+    .exp-topbar-right { margin-left:auto; display:flex; align-items:center; gap:8px; }
+    .polling-dot {
+      width:7px; height:7px; border-radius:50%;
+      background:var(--success); flex-shrink:0;
+      animation: pulse 2s ease infinite;
+    }
+    @keyframes pulse {
+      0%,100%{ opacity:1; transform:scale(1); }
+      50%{ opacity:.5; transform:scale(.8); }
+    }
+    .polling-text { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:5px; }
+
+    /* Filter bar */
+    .filter-bar { display:flex; align-items:center; gap:0; border-bottom:1px solid var(--border); margin-bottom:0; }
+    .filter-spacer { flex:1; }
+
+    /* Split pane */
+    .split-pane {
+      display:flex; min-height:480px;
+      border:1px solid var(--border); border-radius:var(--radius-lg);
+      overflow:hidden; margin-top:0;
+    }
+    .list-pane {
+      flex:1; min-width:0; overflow-y:auto;
+      border-right:1px solid var(--border);
+    }
+    .review-pane {
+      width:380px; flex-shrink:0;
+      overflow-y:auto; background:var(--bg);
+      display:flex; flex-direction:column;
+    }
+
+    .review-empty {
+      flex:1; display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      gap:8px; padding:40px 24px; text-align:center;
+      color:var(--subtle);
+    }
+    .review-empty svg { width:32px; height:32px; opacity:.3; }
+    .review-empty p { font-size:13px; }
+
+    .review-content { display:flex; flex-direction:column; flex:1; }
+    .rv-head {
+      display:flex; align-items:flex-start; justify-content:space-between;
+      gap:8px; padding:16px 18px 12px; border-bottom:1px solid var(--border);
+      flex-shrink:0;
+    }
+    .rv-merchant { font-size:14.5px; font-weight:700; line-height:1.3; }
+    .rv-meta { font-size:12px; color:var(--muted); margin-top:3px; }
+    .rv-body { flex:1; padding:16px 18px; display:flex; flex-direction:column; gap:14px; overflow-y:auto; }
+    .rv-foot {
+      padding:12px 18px; border-top:1px solid var(--border);
+      display:flex; gap:8px; flex-shrink:0;
+    }
+    .rv-section-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-bottom:8px; }
+    .rv-field-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .ai-section { padding:12px; background:var(--surface); border-radius:var(--radius); }
+    .reason-list { list-style:none; display:flex; flex-direction:column; gap:5px; margin-top:8px; }
+    .reason-item {
+      display:flex; align-items:center; gap:7px;
+      font-size:12.5px; color:var(--warning-fg);
+      padding:5px 8px; background:var(--warning-bg);
+      border:1px solid var(--warning-border); border-radius:4px;
+    }
+    .reason-item svg { width:13px; height:13px; flex-shrink:0; }
+    .evidence-section { padding:12px; background:var(--surface); border-radius:var(--radius); }
+    .evidence-upload-area {
+      border:1.5px dashed var(--border-strong); border-radius:var(--radius);
+      padding:16px; text-align:center; cursor:pointer;
+      font-size:12.5px; color:var(--muted); margin-top:8px;
+      transition:border-color .15s, background .15s;
+    }
+    .evidence-upload-area:hover { border-color:var(--fg-2); background:var(--surface-2); }
+
+    /* Mobile review overlay */
+    .mobile-review-overlay {
+      display:none; position:fixed; inset:0;
+      background:var(--bg); z-index:150; overflow-y:auto;
+      flex-direction:column;
+    }
+    .mobile-review-overlay.open { display:flex; }
+    .mobile-review-back {
+      display:flex; align-items:center; gap:8px;
+      padding:12px 16px; border-bottom:1px solid var(--border);
+      font-size:13.5px; font-weight:600; cursor:pointer;
+      color:var(--fg); background:var(--bg); flex-shrink:0;
+    }
+    .mobile-review-back svg { width:18px; height:18px; }
+
+    /* Mobile expense cards */
+    .exp-card {
+      border-bottom:1px solid var(--border); padding:12px 16px;
+      cursor:pointer; transition:background .1s;
+    }
+    .exp-card:hover { background:var(--surface); }
+    .exp-card.selected { background:var(--surface-2); }
+    .exp-card-row1 { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:5px; }
+    .exp-card-merchant { font-size:13.5px; font-weight:600; }
+    .exp-card-amount { font-size:13.5px; font-weight:700; font-variant-numeric:tabular-nums; font-family:var(--font-mono); }
+    .exp-card-row2 { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .exp-card-desc { font-size:12px; color:var(--muted); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+    /* Export section */
+    .export-section {
+      margin-top:20px; background:var(--bg);
+      border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden;
+    }
+    .export-head {
+      display:flex; align-items:center; gap:12px;
+      padding:14px 18px; border-bottom:1px solid var(--border);
+      background:var(--surface);
+    }
+    .export-head-title { font-size:14px; font-weight:700; flex:1; }
+    .export-body { padding:16px 18px; display:flex; flex-direction:column; gap:12px; }
+    .export-row { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .export-file-item {
+      display:flex; align-items:center; gap:10px;
+      padding:10px 14px; border:1px solid var(--border);
+      border-radius:var(--radius); flex:1; min-width:240px;
+    }
+    .export-file-icon { width:32px; height:32px; border-radius:6px; background:var(--success-bg); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .export-file-icon svg { width:18px; height:18px; color:var(--success-fg); }
+    .export-file-name { font-size:13px; font-weight:600; }
+    .export-file-meta { font-size:12px; color:var(--muted); margin-top:2px; }
+    .export-stats { display:flex; gap:16px; font-size:12.5px; color:var(--muted); }
+    .export-stat-val { font-weight:700; color:var(--fg); font-variant-numeric:tabular-nums; }
+
+    .hidden { display:none !important; }
+
+    /* Table row hidden by filter */
+    tr.exp-row.filtered { display:none; }
+    .exp-card.filtered { display:none; }
+
+    @media (max-width:900px) {
+      .review-pane { display:none; }
+      .split-pane { border-radius:0; border-left:none; border-right:none; border-bottom:none; }
+      .list-pane { border-right:none; }
+    }
+    @media (max-width:768px) {
+      .split-pane { margin-top:0; border:none; }
+    }
+  </style>
 </head>
 <body>
-  <div class="app-shell">
-    <header class="topbar">
-      <a class="brand" href="index.html"><span class="brand-mark">BF</span><span>BudgetFlow</span></a>
-      <nav class="topnav" aria-label="주요 화면">
-        <a class="nav-link" href="projects.html">프로젝트</a>
-        <a class="nav-link" href="expenses.html" aria-current="page">지출</a>
-        <a class="nav-link" href="settings.html">설정</a>
-      </nav>
-      <div class="top-actions">
-        <span class="badge">새봄 축제 운영비</span>
-        <a class="btn" href="settings.html">양식 설정</a>
-      </div>
-    </header>
+<div class="app">
 
-    <main class="page">
-      <div class="page-header">
-        <div>
-          <p class="eyebrow">Expenses</p>
-          <h1>지출 목록과 관리자 검토</h1>
-          <p class="lead">Slack 입력은 5초 간격으로 반영됩니다. AI 결과는 자동 확정하지 않고, 신뢰도와 검토 사유를 확인한 뒤 승인 또는 반려합니다.</p>
-        </div>
-        <div class="action-row">
-          <button id="manualRefresh" class="btn" type="button">수동 새로고침</button>
-          <span class="last-sync"><span id="syncPulse" class="pulse"></span><span id="lastSync">갱신 대기</span></span>
-        </div>
-      </div>
-
-      <section class="grid four" aria-label="지출 요약">
-        <article class="stat-card card">
-          <div class="stat-top"><span class="stat-label">전체 지출</span><span class="badge">5건</span></div>
-          <p class="stat-value money">₩366,500</p>
-          <p class="stat-note">Slack 접수 기준 누적 금액</p>
-        </article>
-        <article class="stat-card card">
-          <div class="stat-top"><span class="stat-label">승인 금액</span><span class="status approved">1건</span></div>
-          <p class="stat-value money">₩127,400</p>
-          <p class="stat-note">엑셀 생성 대상에 포함</p>
-        </article>
-        <article class="stat-card card">
-          <div class="stat-top"><span class="stat-label">검토 필요</span><span class="status review">2건</span></div>
-          <p class="stat-value">2</p>
-          <p class="stat-note">신뢰도 낮음, 증빙 없음, 예산 초과 가능</p>
-        </article>
-        <article class="stat-card card">
-          <div class="stat-top"><span class="stat-label">증빙 누락</span><span class="status missing">1건</span></div>
-          <p class="stat-value">1</p>
-          <p class="stat-note">영수증 없음은 무조건 관리자 검토</p>
-        </article>
-      </section>
-
-      <section class="priority-strip section-block" aria-label="검토 작업 순서">
-        <article class="priority-step is-critical">
-          <span class="status missing">1순위</span>
-          <strong>증빙 없는 지출 먼저 확인</strong>
-          <p>영수증 없음은 자동 승인하지 않고, 보완 요청 또는 반려를 먼저 결정합니다.</p>
-        </article>
-        <article class="priority-step">
-          <span class="status review">2순위</span>
-          <strong>금액 차이와 예산 초과 가능성 확인</strong>
-          <p>AI 신뢰도와 검토 사유를 같은 패널에서 보고 필요한 필드만 수정합니다.</p>
-        </article>
-        <article class="priority-step">
-          <span class="status approved">3순위</span>
-          <strong>승인 항목만 엑셀 생성</strong>
-          <p>남은 검토 항목은 제외된다는 경고를 확인하고 제출용 파일을 만듭니다.</p>
-        </article>
-      </section>
-
-      <section class="split-layout section-block">
-        <div class="expenses-main">
-          <div class="toolbar">
-            <div class="filters" aria-label="지출 상태 필터">
-              <button class="filter-btn" type="button" data-filter="all" aria-pressed="true">전체</button>
-              <button class="filter-btn" type="button" data-filter="processing" aria-pressed="false">분석 중</button>
-              <button class="filter-btn" type="button" data-filter="needs_review" aria-pressed="false">검토 필요</button>
-              <button class="filter-btn" type="button" data-filter="approved" aria-pressed="false">승인 완료</button>
-              <button class="filter-btn" type="button" data-filter="rejected" aria-pressed="false">반려</button>
-            </div>
-          </div>
-
-          <div class="table-wrap" aria-label="지출 테이블">
-            <table>
-              <thead>
-                <tr>
-                  <th>날짜</th>
-                  <th>사용처 / 내용</th>
-                  <th>상태</th>
-                  <th>카테고리</th>
-                  <th>금액</th>
-                  <th>결제자</th>
-                  <th>증빙</th>
-                </tr>
-              </thead>
-              <tbody id="expenseTableBody"></tbody>
-            </table>
-          </div>
-          <div id="expenseCards" class="mobile-cards" aria-label="모바일 지출 카드"></div>
-
-          <section class="panel panel-pad section-block">
-            <div class="panel-header flush">
-              <div>
-                <h2>정산 마감 및 엑셀 생성</h2>
-                <p class="lead lead-sm">검토 필요 항목이 남아 있어도 파일 생성은 가능하지만, 해당 항목은 제외됩니다.</p>
-              </div>
-              <button id="createExport" class="btn primary" type="button">승인 항목만 엑셀 생성</button>
-            </div>
-            <div class="grid two section-content">
-              <div class="export-row">
-                <div>
-                  <strong>생성 전 경고</strong>
-                  <p class="helper-text">검토 필요 2건과 반려 1건은 생성 파일에서 제외됨</p>
-                </div>
-                <span class="status review">제외 있음</span>
-              </div>
-              <div class="export-row">
-                <div id="exportJobStatus">
-                  <strong>최근 생성 파일</strong>
-                  <p class="helper-text">아직 현재 작업에서 생성된 파일 없음</p>
-                </div>
-                <button class="btn" type="button">다운로드</button>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <aside id="reviewPane" class="review-pane panel" aria-label="지출 검토 패널"></aside>
-      </section>
-    </main>
-  </div>
-  <nav class="bottom-tabs" aria-label="모바일 주요 화면">
-    <a href="projects.html">프로젝트</a>
-    <a href="expenses.html" aria-current="page">지출</a>
-    <a href="settings.html">설정</a>
+  <nav class="top-nav">
+    <a href="index.html" class="nav-brand">
+      <svg viewBox="0 0 20 20" fill="none"><rect x="2" y="12" width="4" height="6" rx="1" fill="currentColor"/><rect x="8" y="7" width="4" height="11" rx="1" fill="currentColor"/><rect x="14" y="3" width="4" height="15" rx="1" fill="currentColor"/></svg>
+      BudgetFlow
+    </a>
+    <div class="nav-links">
+      <a href="projects.html" class="nav-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+        프로젝트
+      </a>
+      <a href="expenses.html" class="nav-link active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
+        지출관리
+      </a>
+      <a href="settings.html" class="nav-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        설정
+      </a>
+    </div>
+    <div class="nav-right">
+      <span class="nav-project-chip">
+        2025 봄 학술제
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </span>
+      <div class="avatar" title="김지수 (관리자)">KJ</div>
+    </div>
   </nav>
-  <script src="js/budgetflow.js"></script>
+
+  <div class="page">
+
+    <!-- Top bar: refresh + polling -->
+    <div class="exp-topbar">
+      <div class="page-title">지출관리</div>
+      <div class="exp-topbar-right">
+        <div class="polling-text">
+          <span class="polling-dot"></span>
+          마지막 갱신 <strong id="lastUpdated">방금 전</strong>
+        </div>
+        <button class="btn btn-sm btn-secondary" id="refreshBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+          새로고침
+        </button>
+        <a href="settings.html" class="btn btn-sm btn-secondary desktop-only">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          설정
+        </a>
+      </div>
+    </div>
+
+    <!-- Summary cards -->
+    <div class="summary-cards">
+      <div class="summary-card">
+        <div class="summary-card-label">전체 지출</div>
+        <div class="summary-card-value">12건</div>
+        <div class="summary-card-sub">₩728,400 합계</div>
+      </div>
+      <div class="summary-card success">
+        <div class="summary-card-label">승인 완료</div>
+        <div class="summary-card-value">5건</div>
+        <div class="summary-card-sub">₩262,400</div>
+      </div>
+      <div class="summary-card warn">
+        <div class="summary-card-label">검토 필요</div>
+        <div class="summary-card-value">4건</div>
+        <div class="summary-card-sub">AI 신뢰도 낮음 · 예산 초과</div>
+      </div>
+      <div class="summary-card danger">
+        <div class="summary-card-label">증빙 누락</div>
+        <div class="summary-card-value">4건</div>
+        <div class="summary-card-sub">모두 관리자 검토 필요</div>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <div class="filter-tabs" id="filterTabs">
+        <button class="filter-tab active" data-filter="all">전체 <span class="tab-count" id="cnt-all">12</span></button>
+        <button class="filter-tab" data-filter="processing">분석 중 <span class="tab-count" id="cnt-processing">2</span></button>
+        <button class="filter-tab" data-filter="needs_review">검토 필요 <span class="tab-count warn" id="cnt-needs_review">4</span></button>
+        <button class="filter-tab" data-filter="approved">승인 완료 <span class="tab-count" id="cnt-approved">5</span></button>
+        <button class="filter-tab" data-filter="rejected">반려 <span class="tab-count" id="cnt-rejected">1</span></button>
+      </div>
+      <div class="filter-spacer"></div>
+      <div class="filter-search desktop-only">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="searchInput" placeholder="사용처, 내용 검색…"/>
+      </div>
+    </div>
+
+    <!-- Main split pane -->
+    <div class="split-pane">
+      <!-- Left: expense list -->
+      <div class="list-pane">
+
+        <!-- Desktop table -->
+        <table class="data-table desktop-only" id="expenseTable">
+          <thead>
+            <tr>
+              <th style="width:90px">날짜</th>
+              <th>사용처</th>
+              <th style="max-width:160px">내용</th>
+              <th>상태</th>
+              <th>카테고리</th>
+              <th style="text-align:right;width:110px">금액</th>
+              <th>결제자</th>
+              <th>증빙</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="clickable exp-row" data-id="1" data-status="needs_review">
+              <td style="color:var(--muted);font-size:12.5px;white-space:nowrap">05-20</td>
+              <td style="font-weight:500">올리브영 강남점</td>
+              <td style="color:var(--fg-2);font-size:12.5px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">행사 용품 구매</td>
+              <td><span class="badge badge-needs-review">검토 필요</span></td>
+              <td style="font-size:12.5px;color:var(--fg-2)">소모품</td>
+              <td class="amount-cell">₩47,500</td>
+              <td style="font-size:12.5px;color:var(--muted)">김지수</td>
+              <td><span class="badge badge-ev-none">없음</span></td>
+            </tr>
+            <tr class="clickable exp-row" data-id="2" data-status="approved">
+              <td style="color:var(--muted);font-size:12.5px;white-space:nowrap">05-21</td>
+              <td style="font-weight:500">배달의민족</td>
+              <td style="color:var(--fg-2);font-size:12.5px">야간 회의 식사</td>
+              <td><span class="badge badge-approved">승인</span></td>
+              <td style="font-size:12.5px;color:var(--fg-2)">식비</td>
+              <td class="amount-cell">₩89,000</td>
+              <td style="font-size:12.5px;color:var(--muted)">박현우</td>
+              <td><span class="badge badge-ev-verified">확인됨</span></td>
+            </tr>
+            <tr class="clickable exp-row" data-id="3" data-status="approved">
+              <td style="color:var(--muted);font-size:12.5px;white-space:nowrap">05-21</td>
+              <td style="font-weight:500">GS25 대학로점</td>
+              <td style="color:var(--fg-2);font-size:12.5px">음료수 및 간식</td>
+              <td><span class="badge badge-approved">승인</span></td>
+              <td style="font-size:12.5px;color:var(--fg-2)">식비</td>
+              <td class="amount-cell">₩23,400</td>
+              <td style="font-size:12.5px;color:var(--muted)">이승은</td>
+              <td><span class="badge badge-ev-uploaded">업로드됨</span></td>
+            </tr>
+            <tr class="clickable exp-row" data-id="4" data-status="needs_review">
+              <td style="color:var(--muted);font-size:12.5px;white-space:nowrap">05-22</td>
+              <td style="font-weight:500">현대백화점 문화센터</td>
+              <td style="color:var(--fg-2);font-size:12.5px">강연자 사례비</td>
+              <td><span class="badge badge-needs-review">검토 필요</span></td>
+              <td style="font-size:12.5px;color:var(--fg-2)">인건비</td>
+              <td class="amount-cell">₩300,000</td>
+              <td style="font-size:12.5px;color:var(--muted)">박현우</td>
+              <td><span class="badge badge-ev-uploaded">업로드됨</span></td>
+            </tr>
+            <tr class="clickable exp-row" data-id="5" data-status="processing">
+              <td style="color:var(--muted);font-size:12.5px;white-space:nowrap">05-22</td>
+              <td style="font-weight:500">카카오 T</td>
+              <td style="color:var(--fg-2);font-size:12.5px">행사 당일 이동 택시</td>
+              <td><span class="badge badge-processing"><span class="badge-dot"></span>분석 중</span></td>
+              <td style="font-size:12.5px;color:var(--muted)">—</td>
+              <td class="amount-cell">₩18,500</td>
+              <td style="font-size:12.5px;color:var(--muted)">최다은</td>
+              <td><span class="badge badge-ev-none">없음</span></td>
+            </tr>
+            <tr class="clickable exp-row" data-id="6" data-status="needs_review">
+              <td style="color:var(--muted);font-size:12.5px;white-space:nowrap">05-23</td>
+              <td style="font-weight:500">무신사 스토어</td>
+              <td style="color:var(--fg-2);font-size:12.5px">스태프 단체 티셔츠</td>
+              <td><span class="badge badge-needs-review">검토 필요</span></td>
+              <td style="font-size:12.5px;color:var(--fg-2)">의류</td>
+              <td class="amount-cell">₩180,000</td>
+              <td style="font-size:12.5px;color:var(--muted)">김지수</td>
+              <td><span class="badge badge-ev-none">없음</span></td>
+            </tr>
+            <tr class="clickable exp-row" data-id="7" data-status="approved">
+              <td style="color:var(--muted);font-size:12.5px;white-space:nowrap">05-23</td>
+              <td style="font-weight:500">쿠팡</td>
+              <td style="color:var(--fg-2);font-size:12.5px">행사 물품 배송</td>
+              <td><span class="badge badge-approved">승인</span></td>
+              <td style="font-size:12.5px;color:var(--fg-2)">소모품</td>
+              <td class="amount-cell">₩67,000</td>
+              <td style="font-size:12.5px;color:var(--muted)">이승은</td>
+              <td><span class="badge badge-ev-verified">확인됨</span></td>
+            </tr>
+            <tr class="clickable exp-row" data-id="8" data-status="approved">
+              <td style="color:var(--muted);font-size:12.5px;white-space:nowrap">05-24</td>
+              <td style="font-weight:500">롯데리아 신촌점</td>
+              <td style="color:var(--fg-2);font-size:12.5px">봉사자 식사 (8인)</td>
+              <td><span class="badge badge-approved">승인</span></td>
+              <td style="font-size:12.5px;color:var(--fg-2)">식비</td>
+              <td class="amount-cell">₩54,000</td>
+              <td style="font-size:12.5px;color:var(--muted)">최다은</td>
+              <td><span class="badge badge-ev-verified">확인됨</span></td>
+            </tr>
+            <tr class="clickable exp-row" data-id="9" data-status="needs_review">
+              <td style="color:var(--muted);font-size:12.5px;white-space:nowrap">05-24</td>
+              <td style="font-weight:500">예스24</td>
+              <td style="color:var(--fg-2);font-size:12.5px">행사 기념품 도서</td>
+              <td><span class="badge badge-needs-review">검토 필요</span></td>
+              <td style="font-size:12.5px;color:var(--fg-2)">기념품</td>
+              <td class="amount-cell">₩156,000</td>
+              <td style="font-size:12.5px;color:var(--muted)">박현우</td>
+              <td><span class="badge badge-ev-uploaded">업로드됨</span></td>
+            </tr>
+            <tr class="clickable exp-row" data-id="10" data-status="approved">
+              <td style="color:var(--muted);font-size:12.5px;white-space:nowrap">05-25</td>
+              <td style="font-weight:500">스타벅스 대학로점</td>
+              <td style="color:var(--fg-2);font-size:12.5px">강연자 미팅 음료</td>
+              <td><span class="badge badge-approved">승인</span></td>
+              <td style="font-size:12.5px;color:var(--fg-2)">식비</td>
+              <td class="amount-cell">₩28,500</td>
+              <td style="font-size:12.5px;color:var(--muted)">김지수</td>
+              <td><span class="badge badge-ev-verified">확인됨</span></td>
+            </tr>
+            <tr class="clickable exp-row" data-id="11" data-status="rejected">
+              <td style="color:var(--muted);font-size:12.5px;white-space:nowrap">05-25</td>
+              <td style="font-weight:500">Zoom</td>
+              <td style="color:var(--fg-2);font-size:12.5px">화상회의 구독료</td>
+              <td><span class="badge badge-rejected">반려</span></td>
+              <td style="font-size:12.5px;color:var(--fg-2)">소프트웨어</td>
+              <td class="amount-cell">₩21,000</td>
+              <td style="font-size:12.5px;color:var(--muted)">이승은</td>
+              <td><span class="badge badge-ev-uploaded">업로드됨</span></td>
+            </tr>
+            <tr class="clickable exp-row" data-id="12" data-status="processing">
+              <td style="color:var(--muted);font-size:12.5px;white-space:nowrap">05-25</td>
+              <td style="font-weight:500">컬리</td>
+              <td style="color:var(--fg-2);font-size:12.5px">다과 세트</td>
+              <td><span class="badge badge-processing"><span class="badge-dot"></span>분석 중</span></td>
+              <td style="font-size:12.5px;color:var(--muted)">—</td>
+              <td class="amount-cell">₩43,500</td>
+              <td style="font-size:12.5px;color:var(--muted)">최다은</td>
+              <td><span class="badge badge-ev-none">없음</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Mobile expense cards -->
+        <div id="expenseCards" class="mobile-only">
+          <div class="exp-card" data-id="1" data-status="needs_review">
+            <div class="exp-card-row1"><span class="exp-card-merchant">올리브영 강남점</span><span class="exp-card-amount">₩47,500</span></div>
+            <div class="exp-card-row2"><span class="badge badge-needs-review">검토 필요</span><span class="badge badge-ev-none">증빙 없음</span><span class="exp-card-desc">행사 용품 구매</span></div>
+          </div>
+          <div class="exp-card" data-id="2" data-status="approved">
+            <div class="exp-card-row1"><span class="exp-card-merchant">배달의민족</span><span class="exp-card-amount">₩89,000</span></div>
+            <div class="exp-card-row2"><span class="badge badge-approved">승인</span><span class="badge badge-ev-verified">확인됨</span><span class="exp-card-desc">야간 회의 식사</span></div>
+          </div>
+          <div class="exp-card" data-id="4" data-status="needs_review">
+            <div class="exp-card-row1"><span class="exp-card-merchant">현대백화점 문화센터</span><span class="exp-card-amount">₩300,000</span></div>
+            <div class="exp-card-row2"><span class="badge badge-needs-review">검토 필요</span><span class="badge badge-ev-uploaded">업로드됨</span><span class="exp-card-desc">강연자 사례비</span></div>
+          </div>
+          <div class="exp-card" data-id="5" data-status="processing">
+            <div class="exp-card-row1"><span class="exp-card-merchant">카카오 T</span><span class="exp-card-amount">₩18,500</span></div>
+            <div class="exp-card-row2"><span class="badge badge-processing">분석 중</span><span class="badge badge-ev-none">증빙 없음</span><span class="exp-card-desc">행사 당일 이동 택시</span></div>
+          </div>
+          <div class="exp-card" data-id="6" data-status="needs_review">
+            <div class="exp-card-row1"><span class="exp-card-merchant">무신사 스토어</span><span class="exp-card-amount">₩180,000</span></div>
+            <div class="exp-card-row2"><span class="badge badge-needs-review">검토 필요</span><span class="badge badge-ev-none">증빙 없음</span><span class="exp-card-desc">스태프 단체 티셔츠</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right: review panel (desktop) -->
+      <div class="review-pane" id="reviewPane">
+        <div class="review-empty" id="reviewEmpty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          <p>지출 행을 클릭하면<br/>여기서 검토할 수 있습니다</p>
+        </div>
+        <div class="review-content hidden" id="reviewContent">
+          <div class="rv-head">
+            <div>
+              <div class="rv-merchant" id="rv-merchant">—</div>
+              <div class="rv-meta" id="rv-meta">—</div>
+            </div>
+            <span class="badge" id="rv-status-badge">—</span>
+          </div>
+          <div class="rv-body">
+            <div>
+              <div class="rv-section-title">지출 정보 수정</div>
+              <div class="rv-field-grid">
+                <div class="form-group">
+                  <label class="form-label">날짜</label>
+                  <input type="date" class="form-input" id="rv-date"/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">금액 (원)</label>
+                  <input type="number" class="form-input" id="rv-amount" min="0"/>
+                </div>
+              </div>
+              <div class="form-group" style="margin-top:10px">
+                <label class="form-label">카테고리</label>
+                <select class="form-select" id="rv-category">
+                  <option value="식비">식비</option>
+                  <option value="교통비">교통비</option>
+                  <option value="소모품">소모품</option>
+                  <option value="인건비">인건비</option>
+                  <option value="기념품">기념품</option>
+                  <option value="의류">의류</option>
+                  <option value="소프트웨어">소프트웨어</option>
+                  <option value="기타">기타</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-top:10px">
+                <label class="form-label">내용</label>
+                <textarea class="form-textarea" id="rv-desc" style="min-height:60px"></textarea>
+              </div>
+            </div>
+
+            <div class="ai-section" id="rv-ai-section">
+              <div class="rv-section-title">AI 분석 결과</div>
+              <div class="conf-bar">
+                <span style="font-size:12px;color:var(--muted);min-width:48px">신뢰도</span>
+                <div class="conf-track"><div class="conf-fill" id="rv-conf-fill" style="width:0%"></div></div>
+                <span class="conf-num" id="rv-conf-num">—</span>
+              </div>
+              <ul class="reason-list" id="rv-reasons"></ul>
+            </div>
+
+            <div class="evidence-section">
+              <div class="rv-section-title">증빙 자료</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                <span style="font-size:12.5px;color:var(--muted)">상태:</span>
+                <span class="badge" id="rv-evidence-badge">—</span>
+              </div>
+              <div class="evidence-upload-area" id="rv-upload-area">
+                <svg style="width:18px;height:18px;display:inline-block;margin-bottom:4px;opacity:.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <div style="font-size:12.5px;color:var(--muted)">영수증 / 증빙 파일 업로드</div>
+              </div>
+            </div>
+          </div>
+          <div class="rv-foot" id="rv-foot">
+            <button class="btn btn-danger-outline" id="rv-reject-btn" style="flex:1">반려</button>
+            <button class="btn btn-success" id="rv-approve-btn" style="flex:2">승인</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Export section -->
+    <div class="export-section">
+      <div class="export-head">
+        <div class="export-head-title">정산 마감 및 엑셀 내보내기</div>
+        <button class="btn btn-primary" id="closeSettlementBtn">정산 마감</button>
+      </div>
+      <div class="export-body">
+        <div class="alert alert-warning" id="reviewWarning">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span><strong>검토 필요 항목 4건</strong>이 있습니다. 해당 항목은 엑셀 생성 파일에서 제외됩니다. 승인된 항목 5건만 포함됩니다.</span>
+        </div>
+        <div class="export-row">
+          <div class="export-stats">
+            <div><span class="export-stat-val">5건</span> 포함 예정</div>
+            <div><span class="export-stat-val" style="color:var(--warning)">4건</span> 제외 (검토 필요)</div>
+            <div><span class="export-stat-val" style="color:var(--danger)">1건</span> 제외 (반려)</div>
+          </div>
+        </div>
+        <div class="export-file-item" id="latestExport">
+          <div class="export-file-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <div style="flex:1">
+            <div class="export-file-name">2025봄학술제_지출내역서_v2.xlsx</div>
+            <div class="export-file-meta">생성일 2025-05-24 · 만료 2025-06-24 · 31건 포함 · <span style="color:var(--success-fg)">완료</span></div>
+          </div>
+          <button class="btn btn-sm btn-secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            다운로드
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end .page -->
+
+  <!-- Mobile bottom nav -->
+  <nav class="bottom-nav">
+    <div class="bottom-nav-inner">
+      <a href="projects.html" class="tab-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+        프로젝트
+      </a>
+      <a href="expenses.html" class="tab-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
+        지출관리
+      </a>
+      <a href="settings.html" class="tab-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        설정
+      </a>
+    </div>
+  </nav>
+</div>
+
+<!-- Mobile review overlay (full screen) -->
+<div class="mobile-review-overlay" id="mobileReviewOverlay">
+  <div class="mobile-review-back" id="mobileReviewBack">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    목록으로
+  </div>
+  <div class="rv-body" id="mobileRvBody" style="padding:16px"></div>
+  <div class="rv-foot" id="mobileRvFoot" style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px">
+    <button class="btn btn-danger-outline" id="mobile-rv-reject" style="flex:1">반려</button>
+    <button class="btn btn-success" id="mobile-rv-approve" style="flex:2">승인</button>
+  </div>
+</div>
+
+<!-- Settlement confirmation modal -->
+<div class="modal-wrap" id="settlementModal">
+  <div class="modal">
+    <div class="modal-head"><div class="modal-title">정산 마감</div></div>
+    <div class="modal-body">
+      <p style="font-size:13.5px;color:var(--fg-2);line-height:1.7">
+        <strong>검토 필요 4건, 반려 1건</strong>을 제외한 <strong>승인 완료 5건</strong>으로 엑셀 지출내역서를 생성합니다.<br/><br/>
+        마감 후에는 지출 내역 수정이 불가합니다. 계속하시겠습니까?
+      </p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" id="cancelSettlement">취소</button>
+      <button class="btn btn-primary" id="confirmSettlement">마감 및 파일 생성</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var EXPENSES = {
+  1:  { date:'2025-05-20', merchant:'올리브영 강남점', desc:'행사 용품 구매 (마스크, 손소독제, 물티슈)', status:'needs_review', category:'소모품', amount:47500, payer:'김지수', evidence:'none',     aiConf:62,  reasons:['영수증 없음','예산 초과 가능'] },
+  2:  { date:'2025-05-21', merchant:'배달의민족',      desc:'기획팀 야간 회의 식사',                     status:'approved',     category:'식비',   amount:89000, payer:'박현우', evidence:'verified',  aiConf:94,  reasons:[] },
+  3:  { date:'2025-05-21', merchant:'GS25 대학로점',  desc:'음료수 및 간식 (15인분)',                   status:'approved',     category:'식비',   amount:23400, payer:'이승은', evidence:'uploaded',  aiConf:91,  reasons:[] },
+  4:  { date:'2025-05-22', merchant:'현대백화점 문화센터', desc:'강연자 사례비',                         status:'needs_review', category:'인건비', amount:300000,payer:'박현우', evidence:'uploaded',  aiConf:58,  reasons:['AI 신뢰도 낮음','예산 초과 가능'] },
+  5:  { date:'2025-05-22', merchant:'카카오 T',       desc:'행사 당일 이동 택시비 (3회)',               status:'processing',   category:'교통비', amount:18500, payer:'최다은', evidence:'none',     aiConf:null,reasons:[] },
+  6:  { date:'2025-05-23', merchant:'무신사 스토어',  desc:'스태프 단체 티셔츠 (12장)',                  status:'needs_review', category:'의류',   amount:180000,payer:'김지수', evidence:'none',     aiConf:45,  reasons:['영수증 없음','AI 신뢰도 낮음','예산 초과 가능'] },
+  7:  { date:'2025-05-23', merchant:'쿠팡',           desc:'행사 물품 배송 (테이블, 의자)',              status:'approved',     category:'소모품', amount:67000, payer:'이승은', evidence:'verified',  aiConf:88,  reasons:[] },
+  8:  { date:'2025-05-24', merchant:'롯데리아 신촌점',desc:'봉사자 식사 (8인)',                          status:'approved',     category:'식비',   amount:54000, payer:'최다은', evidence:'verified',  aiConf:96,  reasons:[] },
+  9:  { date:'2025-05-24', merchant:'예스24',         desc:'행사 기념품 도서 (15권)',                    status:'needs_review', category:'기념품', amount:156000,payer:'박현우', evidence:'uploaded',  aiConf:71,  reasons:['필수 필드 누락'] },
+  10: { date:'2025-05-25', merchant:'스타벅스 대학로점',desc:'강연자 미팅 음료',                        status:'approved',     category:'식비',   amount:28500, payer:'김지수', evidence:'verified',  aiConf:97,  reasons:[] },
+  11: { date:'2025-05-25', merchant:'Zoom',           desc:'화상회의 구독료 (1개월)',                    status:'rejected',     category:'소프트웨어',amount:21000,payer:'이승은', evidence:'uploaded', aiConf:89,  reasons:[] },
+  12: { date:'2025-05-25', merchant:'컬리',           desc:'다과 세트 (행사 후 뒤풀이)',                 status:'processing',   category:'식비',   amount:43500, payer:'최다은', evidence:'none',     aiConf:null,reasons:[] }
+};
+
+var STATUS_LABELS   = { created:'생성됨', processing:'분석 중', needs_review:'검토 필요', approved:'승인', rejected:'반려', exported:'내보냄' };
+var STATUS_CLASSES  = { created:'badge-created', processing:'badge-processing', needs_review:'badge-needs-review', approved:'badge-approved', rejected:'badge-rejected', exported:'badge-exported' };
+var EV_LABELS       = { none:'없음', uploaded:'업로드됨', ocr_completed:'OCR 완료', ocr_failed:'OCR 실패', verified:'확인됨' };
+var EV_CLASSES      = { none:'badge-ev-none', uploaded:'badge-ev-uploaded', ocr_completed:'badge-ev-uploaded', ocr_failed:'badge-ev-ocr-fail', verified:'badge-ev-verified' };
+
+var currentId = null;
+var isMobile  = function(){ return window.innerWidth <= 900; };
+
+// ── Filter ──────────────────────────────────────────────────────────
+var filterTabs = document.getElementById('filterTabs');
+var activeFilter = 'all';
+
+filterTabs.addEventListener('click', function(e){
+  var btn = e.target.closest('.filter-tab');
+  if (!btn) return;
+  Array.prototype.forEach.call(filterTabs.querySelectorAll('.filter-tab'), function(t){ t.classList.remove('active'); });
+  btn.classList.add('active');
+  activeFilter = btn.dataset.filter;
+  applyFilter();
+});
+
+function applyFilter(){
+  var rows  = document.querySelectorAll('.exp-row');
+  var cards = document.querySelectorAll('#expenseCards .exp-card');
+  [rows, cards].forEach(function(collection){
+    Array.prototype.forEach.call(collection, function(item){
+      var match = activeFilter === 'all' || item.dataset.status === activeFilter;
+      item.classList.toggle('filtered', !match);
+    });
+  });
+}
+
+// ── Search ──────────────────────────────────────────────────────────
+var searchInput = document.getElementById('searchInput');
+if (searchInput) {
+  searchInput.addEventListener('input', function(){
+    var q = searchInput.value.trim().toLowerCase();
+    Array.prototype.forEach.call(document.querySelectorAll('.exp-row'), function(row){
+      var text = row.textContent.toLowerCase();
+      var statusMatch = activeFilter === 'all' || row.dataset.status === activeFilter;
+      row.classList.toggle('filtered', !statusMatch || (q && text.indexOf(q) < 0));
+    });
+  });
+}
+
+// ── Review panel population ─────────────────────────────────────────
+function populateReview(id){
+  var d = EXPENSES[id];
+  if (!d) return;
+
+  document.getElementById('rv-merchant').textContent = d.merchant;
+  document.getElementById('rv-meta').textContent     = d.payer + ' · ' + d.date + ' · ' + d.category;
+  document.getElementById('rv-date').value           = d.date;
+  document.getElementById('rv-amount').value         = d.amount;
+  document.getElementById('rv-category').value       = d.category;
+  document.getElementById('rv-desc').value           = d.desc;
+
+  var statusBadge = document.getElementById('rv-status-badge');
+  statusBadge.className = 'badge ' + (STATUS_CLASSES[d.status] || 'badge-created');
+  statusBadge.textContent = STATUS_LABELS[d.status] || d.status;
+
+  // AI confidence
+  var aiSection = document.getElementById('rv-ai-section');
+  if (d.aiConf === null) {
+    aiSection.style.opacity = '.4';
+    document.getElementById('rv-conf-num').textContent = 'N/A';
+    document.getElementById('rv-conf-fill').style.width = '0%';
+    document.getElementById('rv-conf-fill').className = 'conf-fill';
+  } else {
+    aiSection.style.opacity = '1';
+    var cls = d.aiConf >= 80 ? 'high' : d.aiConf >= 60 ? 'medium' : 'low';
+    document.getElementById('rv-conf-fill').style.width = d.aiConf + '%';
+    document.getElementById('rv-conf-fill').className = 'conf-fill ' + cls;
+    document.getElementById('rv-conf-num').textContent = d.aiConf + '%';
+    document.getElementById('rv-conf-num').className = 'conf-num ' + cls;
+  }
+
+  // Review reasons
+  var reasonsList = document.getElementById('rv-reasons');
+  while (reasonsList.firstChild) { reasonsList.removeChild(reasonsList.firstChild); }
+  if (d.reasons && d.reasons.length > 0) {
+    d.reasons.forEach(function(r){
+      var li = document.createElement('li'); li.className = 'reason-item';
+      var icon = document.createElementNS('http://www.w3.org/2000/svg','svg');
+      icon.setAttribute('viewBox','0 0 24 24'); icon.setAttribute('fill','none');
+      icon.setAttribute('stroke','currentColor'); icon.setAttribute('stroke-width','1.5'); icon.setAttribute('stroke-linecap','round');
+      var p1 = document.createElementNS('http://www.w3.org/2000/svg','path');
+      p1.setAttribute('d','M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z');
+      var l1 = document.createElementNS('http://www.w3.org/2000/svg','line'); l1.setAttribute('x1','12'); l1.setAttribute('y1','9'); l1.setAttribute('x2','12'); l1.setAttribute('y2','13');
+      var l2 = document.createElementNS('http://www.w3.org/2000/svg','line'); l2.setAttribute('x1','12'); l2.setAttribute('y1','17'); l2.setAttribute('x2','12.01'); l2.setAttribute('y2','17');
+      icon.appendChild(p1); icon.appendChild(l1); icon.appendChild(l2);
+      li.appendChild(icon);
+      li.appendChild(document.createTextNode(r));
+      reasonsList.appendChild(li);
+    });
+  }
+
+  // Evidence
+  var evBadge = document.getElementById('rv-evidence-badge');
+  evBadge.className = 'badge ' + (EV_CLASSES[d.evidence] || 'badge-ev-none');
+  evBadge.textContent = EV_LABELS[d.evidence] || d.evidence;
+  document.getElementById('rv-upload-area').style.display = (d.evidence === 'none' || d.evidence === 'ocr_failed') ? 'block' : 'none';
+
+  // Action buttons
+  var approveBtn = document.getElementById('rv-approve-btn');
+  var rejectBtn  = document.getElementById('rv-reject-btn');
+  if (d.status === 'approved') {
+    approveBtn.disabled = true; approveBtn.textContent = '승인됨';
+    rejectBtn.disabled = false; rejectBtn.textContent = '승인 취소';
+  } else if (d.status === 'rejected') {
+    approveBtn.disabled = false; approveBtn.textContent = '재승인';
+    rejectBtn.disabled = true;  rejectBtn.textContent = '반려됨';
+  } else if (d.status === 'processing') {
+    approveBtn.disabled = true; approveBtn.textContent = '승인';
+    rejectBtn.disabled  = true; rejectBtn.textContent  = '반려';
+  } else {
+    approveBtn.disabled = false; approveBtn.textContent = '승인';
+    rejectBtn.disabled  = false; rejectBtn.textContent  = '반려';
+  }
+
+  document.getElementById('reviewEmpty').classList.add('hidden');
+  document.getElementById('reviewContent').classList.remove('hidden');
+}
+
+// ── Row selection ────────────────────────────────────────────────────
+document.addEventListener('click', function(e){
+  var row = e.target.closest('.exp-row');
+  if (row && row.dataset.id) {
+    var id = parseInt(row.dataset.id, 10);
+    currentId = id;
+    Array.prototype.forEach.call(document.querySelectorAll('.exp-row'), function(r){ r.classList.remove('selected'); });
+    row.classList.add('selected');
+    if (!isMobile()) { populateReview(id); }
+  }
+  var card = e.target.closest('#expenseCards .exp-card');
+  if (card && card.dataset.id) {
+    currentId = parseInt(card.dataset.id, 10);
+    openMobileReview(currentId);
+  }
+});
+
+// ── Mobile review overlay ────────────────────────────────────────────
+function openMobileReview(id){
+  var d = EXPENSES[id];
+  if (!d) return;
+  var overlay = document.getElementById('mobileReviewOverlay');
+  var body    = document.getElementById('mobileRvBody');
+  while (body.firstChild) { body.removeChild(body.firstChild); }
+
+  function row2(label, value){
+    var wrap = document.createElement('div'); wrap.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)';
+    var l = document.createElement('span'); l.style.cssText = 'font-size:12px;color:var(--muted)'; l.textContent = label;
+    var v = document.createElement('span'); v.style.cssText = 'font-size:13.5px;font-weight:600'; v.textContent = value;
+    wrap.appendChild(l); wrap.appendChild(v);
+    return wrap;
+  }
+
+  var h = document.createElement('div'); h.style.cssText = 'margin-bottom:14px';
+  var name = document.createElement('div'); name.style.cssText = 'font-size:16px;font-weight:700;margin-bottom:4px'; name.textContent = d.merchant;
+  var sb = document.createElement('span'); sb.className = 'badge ' + (STATUS_CLASSES[d.status]||''); sb.textContent = STATUS_LABELS[d.status]||'';
+  h.appendChild(name); h.appendChild(sb);
+  body.appendChild(h);
+  body.appendChild(row2('날짜', d.date));
+  body.appendChild(row2('금액', '₩' + d.amount.toLocaleString('ko-KR')));
+  body.appendChild(row2('카테고리', d.category));
+  body.appendChild(row2('결제자', d.payer));
+
+  if (d.aiConf !== null) {
+    var aiDiv = document.createElement('div'); aiDiv.style.cssText = 'margin-top:12px;padding:12px;background:var(--surface);border-radius:var(--radius)';
+    var aiTitle = document.createElement('div'); aiTitle.style.cssText = 'font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px'; aiTitle.textContent = 'AI 분석';
+    var cls = d.aiConf>=80?'high':d.aiConf>=60?'medium':'low';
+    var barWrap = document.createElement('div'); barWrap.className='conf-bar';
+    var label2 = document.createElement('span'); label2.style.cssText='font-size:12px;color:var(--muted);min-width:48px'; label2.textContent='신뢰도';
+    var track = document.createElement('div'); track.className='conf-track';
+    var fill = document.createElement('div'); fill.className='conf-fill '+cls; fill.style.width=d.aiConf+'%';
+    track.appendChild(fill);
+    var num = document.createElement('span'); num.className='conf-num '+cls; num.textContent=d.aiConf+'%';
+    barWrap.appendChild(label2); barWrap.appendChild(track); barWrap.appendChild(num);
+    aiDiv.appendChild(aiTitle); aiDiv.appendChild(barWrap);
+    body.appendChild(aiDiv);
+  }
+
+  overlay.classList.add('open');
+  var mApprove = document.getElementById('mobile-rv-approve');
+  var mReject  = document.getElementById('mobile-rv-reject');
+  mApprove.disabled = (d.status==='approved'||d.status==='processing');
+  mReject.disabled  = (d.status==='rejected' ||d.status==='processing');
+
+  function doAction(newStatus){ EXPENSES[id].status=newStatus; updateRowStatus(id,newStatus); overlay.classList.remove('open'); }
+  mApprove.onclick = function(){ if(!mApprove.disabled){ doAction('approved'); } };
+  mReject.onclick  = function(){ if(!mReject.disabled){  doAction('rejected'); } };
+}
+
+document.getElementById('mobileReviewBack').addEventListener('click', function(){
+  document.getElementById('mobileReviewOverlay').classList.remove('open');
+});
+
+// ── Approve / Reject ─────────────────────────────────────────────────
+function updateRowStatus(id, newStatus){
+  var row  = document.querySelector('.exp-row[data-id="' + id + '"]');
+  var card = document.querySelector('#expenseCards .exp-card[data-id="' + id + '"]');
+  [row, card].forEach(function(el){
+    if (!el) return;
+    el.dataset.status = newStatus;
+    var badge = el.querySelector('.badge-needs-review, .badge-approved, .badge-rejected, .badge-processing, .badge-created');
+    if (badge) {
+      badge.className = 'badge ' + (STATUS_CLASSES[newStatus]||'');
+      badge.textContent = STATUS_LABELS[newStatus]||newStatus;
+    }
+  });
+  if (activeFilter !== 'all') { applyFilter(); }
+}
+
+document.getElementById('rv-approve-btn').addEventListener('click', function(){
+  if (!currentId || this.disabled) return;
+  EXPENSES[currentId].status = 'approved';
+  updateRowStatus(currentId, 'approved');
+  populateReview(currentId);
+});
+document.getElementById('rv-reject-btn').addEventListener('click', function(){
+  if (!currentId || this.disabled) return;
+  EXPENSES[currentId].status = 'rejected';
+  updateRowStatus(currentId, 'rejected');
+  populateReview(currentId);
+});
+
+// ── Settlement modal ─────────────────────────────────────────────────
+var settlementModal = document.getElementById('settlementModal');
+document.getElementById('closeSettlementBtn').addEventListener('click', function(){
+  settlementModal.classList.add('open');
+});
+document.getElementById('cancelSettlement').addEventListener('click', function(){
+  settlementModal.classList.remove('open');
+});
+document.getElementById('confirmSettlement').addEventListener('click', function(){
+  settlementModal.classList.remove('open');
+  var alert2 = document.getElementById('reviewWarning');
+  if (alert2) {
+    alert2.className = 'alert alert-success';
+    while (alert2.firstChild) { alert2.removeChild(alert2.firstChild); }
+    var icon = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    icon.setAttribute('viewBox','0 0 24 24'); icon.setAttribute('fill','none'); icon.setAttribute('stroke','currentColor'); icon.setAttribute('stroke-width','1.5'); icon.setAttribute('stroke-linecap','round');
+    var poly = document.createElementNS('http://www.w3.org/2000/svg','polyline'); poly.setAttribute('points','20 6 9 17 4 12');
+    icon.appendChild(poly);
+    alert2.appendChild(icon);
+    var txt = document.createElement('span'); txt.textContent = '엑셀 파일 생성이 시작됐습니다. 완료되면 아래 파일 목록에서 다운로드할 수 있습니다.';
+    alert2.appendChild(txt);
+  }
+});
+
+// ── 5-second polling simulation ──────────────────────────────────────
+var elapsed = 0;
+var lastUpdatedEl = document.getElementById('lastUpdated');
+setInterval(function(){
+  elapsed++;
+  if (elapsed === 1)      { lastUpdatedEl.textContent = '1초 전'; }
+  else if (elapsed < 60)  { lastUpdatedEl.textContent = elapsed + '초 전'; }
+  else                    { lastUpdatedEl.textContent = Math.floor(elapsed/60) + '분 전'; }
+}, 1000);
+
+setInterval(function(){
+  elapsed = 0; lastUpdatedEl.textContent = '방금 전';
+}, 5000);
+
+// ── Refresh button ───────────────────────────────────────────────────
+document.getElementById('refreshBtn').addEventListener('click', function(){
+  elapsed = 0; lastUpdatedEl.textContent = '방금 전';
+  var btn = this; btn.disabled = true;
+  setTimeout(function(){ btn.disabled = false; }, 800);
+});
+</script>
 </body>
 </html>
