@@ -1,0 +1,571 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2, Pencil, Plus, Save, Upload } from "lucide-react";
+import { useForm } from "react-hook-form";
+
+import {
+  PageHeader,
+  Panel,
+  ProgressBar,
+  SectionToolbar,
+  StatusBadge,
+} from "@/components/budgetflow-ui";
+import { TextArea, TextInput } from "@/components/form-controls";
+import { FormField } from "@/components/form-field";
+import { SummaryCard } from "@/components/summary-card";
+import { Button } from "@/components/ui/button";
+import { DEMO_PROJECT_ID } from "@/lib/config/demo";
+import type {
+  BudgetCategory,
+  Project,
+  TemplateUploadResult,
+} from "@/lib/domain";
+import {
+  budgetCategoryFormSchema,
+  parseKeywordsText,
+  type BudgetCategoryFormInput,
+  type BudgetCategoryFormValues,
+} from "@/lib/forms/budget-category";
+import { formatCurrency } from "@/lib/formatters";
+import {
+  useBudgetCategories,
+  useConfirmTemplateMapping,
+  useCreateBudgetCategory,
+  useProject,
+  useUploadProjectTemplate,
+  useUpdateBudgetCategory,
+} from "@/lib/hooks/use-budgetflow";
+
+const defaultValues: BudgetCategoryFormInput = {
+  budgetLimit: 100_000,
+  keywordsText: "",
+  name: "",
+};
+
+const reviewPolicies = [
+  "AI 신뢰도 낮음",
+  "예산 초과 가능",
+  "영수증 없음",
+  "필수 필드 누락",
+  "OCR 실패",
+] as const;
+
+const settingsTabs = [
+  { id: "template", label: "엑셀 양식" },
+  { id: "categories", label: "예산 카테고리" },
+  { id: "keywords", label: "분류 키워드" },
+] as const;
+
+type SettingsTab = (typeof settingsTabs)[number]["id"];
+
+export function SettingsClient() {
+  const [activeTab, setActiveTab] = useState<SettingsTab>("template");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const projectQuery = useProject(DEMO_PROJECT_ID);
+  const categoriesQuery = useBudgetCategories(DEMO_PROJECT_ID);
+  const createCategory = useCreateBudgetCategory(DEMO_PROJECT_ID);
+  const updateCategory = useUpdateBudgetCategory(DEMO_PROJECT_ID);
+  const selectedCategory = useMemo(
+    () =>
+      categoriesQuery.data?.find(
+        (category) => category.id === selectedCategoryId,
+      ) ?? null,
+    [categoriesQuery.data, selectedCategoryId],
+  );
+  const form = useForm<
+    BudgetCategoryFormInput,
+    undefined,
+    BudgetCategoryFormValues
+  >({
+    resolver: zodResolver(budgetCategoryFormSchema),
+    defaultValues,
+  });
+
+  useEffect(() => {
+    if (!selectedCategory) {
+      form.reset(defaultValues);
+      return;
+    }
+
+    form.reset({
+      budgetLimit: selectedCategory.budgetLimit,
+      keywordsText: selectedCategory.keywords.join(", "),
+      name: selectedCategory.name,
+    });
+  }, [form, selectedCategory]);
+
+  const isMutating = createCategory.isPending || updateCategory.isPending;
+  const totals = useMemo(
+    () =>
+      categoriesQuery.data?.reduce(
+        (accumulator, category) => ({
+          approvedAmount: accumulator.approvedAmount + category.approvedAmount,
+          budgetLimit: accumulator.budgetLimit + category.budgetLimit,
+        }),
+        { approvedAmount: 0, budgetLimit: 0 },
+      ) ?? { approvedAmount: 0, budgetLimit: 0 },
+    [categoriesQuery.data],
+  );
+
+  const onSubmit = form.handleSubmit(async (values) => {
+    const keywords = parseKeywordsText(values.keywordsText);
+
+    if (selectedCategory) {
+      await updateCategory.mutateAsync({
+        budgetLimit: values.budgetLimit,
+        categoryId: selectedCategory.id,
+        keywords,
+        name: values.name,
+      });
+    } else {
+      await createCategory.mutateAsync({
+        budgetLimit: values.budgetLimit,
+        keywords,
+        name: values.name,
+        projectId: DEMO_PROJECT_ID,
+      });
+    }
+
+    setSelectedCategoryId(null);
+    form.reset(defaultValues);
+  });
+
+  return (
+    <section className="bf-page-stack">
+      <PageHeader
+        eyebrow="Settings"
+        lead="기관 제출용 파일을 만들기 위해 양식 업로드와 관리자 확정 단계를 분리했습니다. AI 추천은 출발점이고 최종 매핑은 사람이 확정합니다."
+        title="엑셀 양식, 컬럼 매핑, 예산 카테고리"
+      />
+
+      <Panel className="p-1">
+        <div className="grid gap-1 sm:grid-cols-3" role="tablist" aria-label="설정 범주">
+          {settingsTabs.map((tab) => (
+            <button
+              aria-selected={activeTab === tab.id}
+              className={
+                activeTab === tab.id
+                  ? "h-10 rounded-lg bg-zinc-950 px-3 text-sm font-semibold text-white shadow-sm"
+                  : "h-10 rounded-lg px-3 text-sm font-semibold text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950"
+              }
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              role="tab"
+              type="button"
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </Panel>
+
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-4">
+          {activeTab === "template" ? (
+            <TemplateUploadPanel project={projectQuery.data ?? null} />
+          ) : null}
+
+          {activeTab === "categories" ? (
+            <>
+              <Panel className="bf-panel-pad">
+                <SectionToolbar>
+                  <div>
+                    <h2 className="text-lg font-bold text-zinc-950">예산 카테고리와 한도</h2>
+                    <p className="bf-helper mt-1">
+                      카테고리 한도와 키워드는 AI 분류 기준으로 백엔드에 전달됩니다.
+                    </p>
+                  </div>
+                </SectionToolbar>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <SummaryCard
+                    label="카테고리 예산"
+                    value={formatCurrency(totals.budgetLimit)}
+                  />
+                  <SummaryCard
+                    label="승인 사용액"
+                    tone="success"
+                    value={formatCurrency(totals.approvedAmount)}
+                  />
+                </div>
+
+                <div className="mt-4 divide-y divide-zinc-100">
+                  {categoriesQuery.isLoading ? (
+                    <p className="py-5 text-sm text-zinc-600">
+                      카테고리를 불러오는 중입니다.
+                    </p>
+                  ) : null}
+
+                  {categoriesQuery.data?.map((category) => (
+                    <CategoryRow
+                      category={category}
+                      isSelected={category.id === selectedCategoryId}
+                      key={category.id}
+                      onEdit={() => setSelectedCategoryId(category.id)}
+                    />
+                  ))}
+                </div>
+              </Panel>
+
+              <Panel className="bf-panel-pad">
+                <SectionToolbar
+                  actions={
+                    <Button
+                      onClick={() => setSelectedCategoryId(null)}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      <Plus data-icon="inline-start" />
+                      새 항목
+                    </Button>
+                  }
+                >
+                  <h2 className="text-lg font-bold text-zinc-950">
+                    {selectedCategory ? "카테고리 수정" : "카테고리 추가"}
+                  </h2>
+                  <p className="bf-helper mt-1">쉼표로 분류 키워드를 입력합니다.</p>
+                </SectionToolbar>
+
+                <form className="mt-5 space-y-4" onSubmit={onSubmit}>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField
+                      label="카테고리명"
+                      error={form.formState.errors.name?.message}
+                    >
+                      <TextInput placeholder="다과비" {...form.register("name")} />
+                    </FormField>
+                    <FormField
+                      label="예산 한도"
+                      error={form.formState.errors.budgetLimit?.message}
+                    >
+                      <TextInput
+                        inputMode="numeric"
+                        step="10000"
+                        type="number"
+                        {...form.register("budgetLimit")}
+                      />
+                    </FormField>
+                  </div>
+                  <FormField
+                    label="분류 키워드"
+                    error={form.formState.errors.keywordsText?.message}
+                  >
+                    <TextArea
+                      placeholder="간식, 커피, 음료"
+                      {...form.register("keywordsText")}
+                    />
+                  </FormField>
+                  <Button disabled={isMutating} type="submit">
+                    {isMutating ? (
+                      <Loader2 className="animate-spin" data-icon="inline-start" />
+                    ) : selectedCategory ? (
+                      <Save data-icon="inline-start" />
+                    ) : (
+                      <Plus data-icon="inline-start" />
+                    )}
+                    {selectedCategory ? "수정 저장" : "추가"}
+                  </Button>
+                </form>
+              </Panel>
+            </>
+          ) : null}
+
+          {activeTab === "keywords" ? (
+            <Panel className="bf-panel-pad">
+              <SectionToolbar>
+                <div>
+                  <h2 className="text-lg font-bold text-zinc-950">분류 키워드</h2>
+                  <p className="bf-helper mt-1">
+                    예산 카테고리별 키워드는 Slack 입력을 자동 분류하는 기준입니다.
+                  </p>
+                </div>
+              </SectionToolbar>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {(categoriesQuery.data ?? []).map((category) => (
+                  <div
+                    className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-3"
+                    key={category.id}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <strong className="text-sm text-zinc-950">{category.name}</strong>
+                      <StatusBadge tone={category.remainingAmount < 0 ? "missing" : "approved"}>
+                        {category.remainingAmount < 0 ? "초과" : "사용 가능"}
+                      </StatusBadge>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-zinc-600">
+                      {category.keywords.join(", ")}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </Panel>
+          ) : null}
+        </div>
+
+        <aside className="space-y-4">
+          <Panel className="bf-panel-pad">
+            <h2 className="text-lg font-bold text-zinc-950">검토 필요 정책</h2>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {reviewPolicies.map((policy) => (
+                <StatusBadge key={policy} tone={policy === "영수증 없음" ? "missing" : "review"}>
+                  {policy}
+                </StatusBadge>
+              ))}
+            </div>
+          </Panel>
+
+          <Panel className="bf-panel-pad">
+            <h2 className="text-lg font-bold text-zinc-950">엑셀 생성 전 확인</h2>
+            <div className="mt-4 space-y-3">
+              {[
+                "카테고리별 한도와 승인 사용액을 확인합니다.",
+                "추천 컬럼은 관리자가 확정한 뒤 사용합니다.",
+                "검토 필요 항목은 생성 파일에서 제외된다는 경고를 확인합니다.",
+              ].map((item) => (
+                <p
+                  className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm leading-6 text-zinc-700"
+                  key={item}
+                >
+                  {item}
+                </p>
+              ))}
+            </div>
+          </Panel>
+
+          <Panel className="bf-panel-pad">
+            <h2 className="text-lg font-bold text-zinc-950">분류 키워드</h2>
+            <div className="mt-4 space-y-2">
+              {(categoriesQuery.data ?? []).map((category) => (
+                <div
+                  className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2"
+                  key={category.id}
+                >
+                  <strong className="text-sm text-zinc-950">{category.name}</strong>
+                  <p className="mt-1 text-sm leading-6 text-zinc-600">
+                    {category.keywords.join(", ")}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        </aside>
+      </section>
+    </section>
+  );
+}
+
+function TemplateUploadPanel({ project }: { project: Project | null }) {
+  const [fileName, setFileName] = useState("");
+  const [uploadResult, setUploadResult] = useState<TemplateUploadResult | null>(
+    null,
+  );
+  const [error, setError] = useState<string | null>(null);
+  const uploadTemplate = useUploadProjectTemplate(DEMO_PROJECT_ID);
+  const confirmMapping = useConfirmTemplateMapping(DEMO_PROJECT_ID);
+  const isPending = uploadTemplate.isPending || confirmMapping.isPending;
+
+  const visibleMappings =
+    uploadResult?.mappings ??
+    [
+      { confirmed: true, confidence: 0.94, sourceColumn: "날짜", targetField: "date" as const },
+      { confirmed: true, confidence: 0.9, sourceColumn: "사용처", targetField: "merchant" as const },
+      { confirmed: false, confidence: 0.88, sourceColumn: "카테고리", targetField: "category" as const },
+      { confirmed: false, confidence: 0.76, sourceColumn: "증빙 링크", targetField: "evidence" as const },
+    ];
+
+  const onUpload = async () => {
+    setError(null);
+
+    if (!fileName) {
+      setError("업로드할 엑셀 파일을 선택하세요.");
+      return;
+    }
+
+    try {
+      const result = await uploadTemplate.mutateAsync({
+        fileName,
+        projectId: DEMO_PROJECT_ID,
+      });
+      setUploadResult(result);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "양식 업로드에 실패했습니다.",
+      );
+    }
+  };
+
+  const onConfirmMapping = async () => {
+    if (!uploadResult) {
+      return;
+    }
+
+    const result = await confirmMapping.mutateAsync({
+      mappings: uploadResult.mappings,
+      projectId: DEMO_PROJECT_ID,
+    });
+    setUploadResult(result);
+  };
+
+  const mappingStatus = uploadResult?.mappingStatus ?? project?.templateMappingStatus;
+
+  return (
+    <Panel className="bf-panel-pad" id="template-upload">
+      <SectionToolbar
+        actions={
+          <div className="flex flex-col gap-2 sm:min-w-80">
+            <label className="flex min-h-10 cursor-pointer items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-3 text-sm hover:bg-zinc-50">
+              <span className="truncate text-zinc-600">
+                {fileName || "엑셀 파일을 선택하세요"}
+              </span>
+              <span className="shrink-0 rounded-md bg-zinc-100 px-2 py-1 text-xs font-semibold text-zinc-700">
+                파일 선택
+              </span>
+              <input
+                accept=".xlsx,.xls"
+                className="sr-only"
+                onChange={(event) => setFileName(event.target.files?.[0]?.name ?? "")}
+                type="file"
+              />
+            </label>
+            <Button disabled={isPending} onClick={() => void onUpload()} type="button">
+              {uploadTemplate.isPending ? (
+                <Loader2 className="animate-spin" data-icon="inline-start" />
+              ) : (
+                <Upload data-icon="inline-start" />
+              )}
+              업로드 및 매핑 추천
+            </Button>
+          </div>
+        }
+      >
+        <h2 className="text-lg font-bold text-zinc-950">엑셀 양식 업로드</h2>
+        <p className="bf-helper mt-1">
+          {project?.templateFileName ?? "양식 파일 미등록"} ·{" "}
+          {templateMappingStatusLabel(mappingStatus)}
+        </p>
+        <p className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm leading-6 text-zinc-700">
+          양식 파일과 컬럼 매핑이 모두 확정되어야 제출용 엑셀 생성 버튼이
+          명확하게 활성화됩니다.
+        </p>
+      </SectionToolbar>
+
+      {error ? <p className="mt-3 text-sm font-medium text-red-700">{error}</p> : null}
+
+      <div className="mt-5">
+        <SectionToolbar
+          actions={
+            <Button
+              disabled={isPending || !uploadResult || uploadResult.mappingStatus === "confirmed"}
+              onClick={() => void onConfirmMapping()}
+              type="button"
+            >
+              {confirmMapping.isPending ? (
+                <Loader2 className="animate-spin" data-icon="inline-start" />
+              ) : (
+                <Save data-icon="inline-start" />
+              )}
+              추천 매핑 확정
+            </Button>
+          }
+        >
+          <h3 className="font-bold text-zinc-950">LLM 컬럼 매핑 추천</h3>
+          <p className="bf-helper mt-1">
+            추천값은 관리자 확정 전까지 제출용 엑셀 생성에 사용하지 않습니다.
+          </p>
+        </SectionToolbar>
+
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {visibleMappings.map((mapping) => (
+            <div
+              className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm"
+              key={`${mapping.sourceColumn}-${mapping.targetField}`}
+            >
+              <span>
+                {mapping.sourceColumn} → {templateFieldLabel[mapping.targetField]}
+              </span>
+              <StatusBadge tone={mapping.confirmed ? "approved" : "processing"}>
+                {mapping.confirmed ? "확정됨" : "추천됨"}
+              </StatusBadge>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
+function CategoryRow({
+  category,
+  isSelected,
+  onEdit,
+}: {
+  category: BudgetCategory;
+  isSelected: boolean;
+  onEdit: () => void;
+}) {
+  const usageWidth = Math.min(100, Math.max(0, category.usageRate));
+  const isOverBudget = category.remainingAmount < 0;
+  const tone = isOverBudget ? "missing" : usageWidth >= 80 ? "review" : "approved";
+
+  return (
+    <article className={isSelected ? "bg-zinc-950/[0.04] py-4" : "py-4"}>
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-bold text-zinc-950">{category.name}</h3>
+            <StatusBadge tone={tone}>
+              {isOverBudget ? "초과" : usageWidth >= 80 ? "주의" : "정상"}
+            </StatusBadge>
+          </div>
+          <p className="mt-1 text-sm leading-6 text-zinc-600">
+            {category.keywords.join(", ")}
+          </p>
+        </div>
+        <Button onClick={onEdit} size="sm" variant="outline">
+          <Pencil data-icon="inline-start" />
+          수정
+        </Button>
+      </div>
+
+      <div className="mt-3 space-y-2">
+        <div className="flex flex-wrap justify-between gap-2 text-sm">
+          <span className="font-semibold text-zinc-700">
+            {formatCurrency(category.approvedAmount)} /{" "}
+            {formatCurrency(category.budgetLimit)}
+          </span>
+          <span className={isOverBudget ? "font-semibold text-red-700" : "font-semibold"}>
+            잔액 {formatCurrency(category.remainingAmount)}
+          </span>
+        </div>
+        <ProgressBar tone={tone === "missing" ? "missing" : tone === "review" ? "review" : "approved"} value={usageWidth} />
+      </div>
+    </article>
+  );
+}
+
+function templateMappingStatusLabel(
+  status: Project["templateMappingStatus"] | TemplateUploadResult["mappingStatus"] | undefined,
+) {
+  if (status === "confirmed") {
+    return "매핑 확정됨";
+  }
+
+  if (status === "suggested") {
+    return "매핑 추천됨";
+  }
+
+  return "매핑 없음";
+}
+
+const templateFieldLabel = {
+  amount: "금액",
+  category: "예산 항목",
+  date: "지출일자",
+  description: "내용",
+  evidence: "첨부자료",
+  merchant: "거래처명",
+  payerName: "결제자",
+} as const;

@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>BudgetFlow — 프로젝트</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <style>
+    .project-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px; }
+    .stat-card { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-md); padding:14px 16px; }
+    .stat-label { font-size:11.5px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:5px; }
+    .stat-value { font-size:24px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
+    .stat-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+    .project-table-wrap { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
+    .budget-cell { display:flex; flex-direction:column; gap:3px; min-width:160px; }
+    .budget-nums { display:flex; justify-content:space-between; font-size:12px; font-variant-numeric:tabular-nums; }
+    .budget-used { font-weight:600; color:var(--fg-2); }
+    .budget-limit { color:var(--muted); }
+    .channel-chip { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:4px; background:var(--surface); border:1px solid var(--border); font-size:11.5px; font-family:var(--font-mono); color:var(--fg-2); }
+    .project-card-mobile { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px; margin-bottom:10px; }
+    .project-card-head { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:10px; }
+    .project-card-name { font-size:14.5px; font-weight:700; letter-spacing:-.01em; }
+    .project-card-period { font-size:12px; color:var(--muted); margin-top:2px; }
+    .project-card-meta { display:flex; flex-wrap:wrap; gap:8px; font-size:12px; color:var(--muted); align-items:center; margin-bottom:10px; }
+    .project-actions { display:flex; gap:6px; }
+    .hidden { display:none !important; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <nav class="top-nav">
+    <a href="index.html" class="nav-brand">
+      <svg viewBox="0 0 20 20" fill="none"><rect x="2" y="12" width="4" height="6" rx="1" fill="currentColor"/><rect x="8" y="7" width="4" height="11" rx="1" fill="currentColor"/><rect x="14" y="3" width="4" height="15" rx="1" fill="currentColor"/></svg>
+      BudgetFlow
+    </a>
+    <div class="nav-links">
+      <a href="projects.html" class="nav-link active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+        프로젝트
+      </a>
+      <a href="expenses.html" class="nav-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
+        지출관리
+      </a>
+      <a href="settings.html" class="nav-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        설정
+      </a>
+    </div>
+    <div class="nav-right"><div class="avatar" title="김지수 (관리자)">KJ</div></div>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <div class="page-title">프로젝트</div>
+      <div class="page-header-actions">
+        <button class="btn btn-primary" id="newProjectBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          새 프로젝트
+        </button>
+      </div>
+    </div>
+
+    <div class="project-stats">
+      <div class="stat-card">
+        <div class="stat-label">전체 프로젝트</div>
+        <div class="stat-value" id="statCount">3</div>
+        <div class="stat-sub">진행 중 1 · 마감 2</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">누적 예산</div>
+        <div class="stat-value">₩4,800,000</div>
+        <div class="stat-sub">3개 프로젝트 합산</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">누적 지출</div>
+        <div class="stat-value">₩3,908,500</div>
+        <div class="stat-sub">집행률 81.4%</div>
+      </div>
+    </div>
+
+    <!-- Desktop table (pre-rendered) -->
+    <div class="project-table-wrap desktop-only">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>프로젝트명</th>
+            <th>기간</th>
+            <th>Slack 채널</th>
+            <th>예산 집행</th>
+            <th>지출 건수</th>
+            <th>엑셀 양식</th>
+            <th>상태</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="projectTbody">
+          <tr class="clickable">
+            <td style="font-weight:600">2025 봄 학술제</td>
+            <td style="color:var(--muted);font-size:12.5px;white-space:nowrap">2025-05-15 ~ 2025-06-15</td>
+            <td><span class="channel-chip">#학술제-2025</span></td>
+            <td>
+              <div class="budget-cell">
+                <div class="budget-nums"><span class="budget-used">₩2,847,500</span><span class="budget-limit">/ ₩3,500,000</span></div>
+                <div class="progress-bar"><div class="progress-fill warning" style="width:81%"></div></div>
+                <span style="font-size:11.5px;color:var(--muted)">81% 집행</span>
+              </div>
+            </td>
+            <td style="text-align:center;font-variant-numeric:tabular-nums;font-weight:600">47건</td>
+            <td><span class="badge badge-map-confirmed">확정</span></td>
+            <td><span class="badge badge-processing"><span class="badge-dot"></span>진행 중</span></td>
+            <td>
+              <div style="display:flex;gap:6px">
+                <a href="expenses.html" class="btn btn-sm btn-secondary">지출 보기</a>
+                <button class="btn btn-sm btn-ghost" onclick="markClosed(this)">마감</button>
+              </div>
+            </td>
+          </tr>
+          <tr class="clickable">
+            <td style="font-weight:600">동아리 MT</td>
+            <td style="color:var(--muted);font-size:12.5px;white-space:nowrap">2025-04-01 ~ 2025-04-30</td>
+            <td><span class="channel-chip">#동아리-mt</span></td>
+            <td>
+              <div class="budget-cell">
+                <div class="budget-nums"><span class="budget-used">₩623,000</span><span class="budget-limit">/ ₩800,000</span></div>
+                <div class="progress-bar"><div class="progress-fill warning" style="width:78%"></div></div>
+                <span style="font-size:11.5px;color:var(--muted)">78% 집행</span>
+              </div>
+            </td>
+            <td style="text-align:center;font-variant-numeric:tabular-nums;font-weight:600">18건</td>
+            <td><span class="badge badge-map-confirmed">확정</span></td>
+            <td><span class="badge badge-created">마감</span></td>
+            <td><a href="expenses.html" class="btn btn-sm btn-secondary">지출 보기</a></td>
+          </tr>
+          <tr class="clickable">
+            <td style="font-weight:600">학생회 정기총회</td>
+            <td style="color:var(--muted);font-size:12.5px;white-space:nowrap">2025-03-10 ~ 2025-03-31</td>
+            <td><span class="channel-chip">#정기총회</span></td>
+            <td>
+              <div class="budget-cell">
+                <div class="budget-nums"><span class="budget-used">₩438,000</span><span class="budget-limit">/ ₩500,000</span></div>
+                <div class="progress-bar"><div class="progress-fill danger" style="width:88%"></div></div>
+                <span style="font-size:11.5px;color:var(--muted)">88% 집행</span>
+              </div>
+            </td>
+            <td style="text-align:center;font-variant-numeric:tabular-nums;font-weight:600">12건</td>
+            <td><span class="badge badge-map-suggested">매핑 추천됨</span></td>
+            <td><span class="badge badge-created">마감</span></td>
+            <td><a href="expenses.html" class="btn btn-sm btn-secondary">지출 보기</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile cards (pre-rendered) -->
+    <div id="mobileCards" class="mobile-only">
+      <div class="project-card-mobile">
+        <div class="project-card-head">
+          <div>
+            <div class="project-card-name">2025 봄 학술제</div>
+            <div class="project-card-period">2025-05-15 ~ 2025-06-15</div>
+          </div>
+          <span class="badge badge-processing"><span class="badge-dot"></span>진행 중</span>
+        </div>
+        <div class="project-card-meta">
+          <span class="channel-chip">#학술제-2025</span>
+          <span class="badge badge-map-confirmed">확정</span>
+          <span>47건</span>
+        </div>
+        <div style="margin-bottom:10px">
+          <div class="budget-nums" style="margin-bottom:5px"><span class="budget-used">₩2,847,500</span><span class="budget-limit">/ ₩3,500,000</span></div>
+          <div class="progress-bar"><div class="progress-fill warning" style="width:81%"></div></div>
+        </div>
+        <div class="project-actions">
+          <a href="expenses.html" class="btn btn-sm btn-secondary" style="flex:1">지출 보기</a>
+          <button class="btn btn-sm btn-ghost" onclick="markClosed(this)">마감</button>
+        </div>
+      </div>
+      <div class="project-card-mobile">
+        <div class="project-card-head">
+          <div>
+            <div class="project-card-name">동아리 MT</div>
+            <div class="project-card-period">2025-04-01 ~ 2025-04-30</div>
+          </div>
+          <span class="badge badge-created">마감</span>
+        </div>
+        <div class="project-card-meta">
+          <span class="channel-chip">#동아리-mt</span>
+          <span class="badge badge-map-confirmed">확정</span>
+          <span>18건</span>
+        </div>
+        <div style="margin-bottom:10px">
+          <div class="budget-nums" style="margin-bottom:5px"><span class="budget-used">₩623,000</span><span class="budget-limit">/ ₩800,000</span></div>
+          <div class="progress-bar"><div class="progress-fill warning" style="width:78%"></div></div>
+        </div>
+        <div class="project-actions">
+          <a href="expenses.html" class="btn btn-sm btn-secondary" style="flex:1">지출 보기</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <div class="bottom-nav-inner">
+      <a href="projects.html" class="tab-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+        프로젝트
+      </a>
+      <a href="expenses.html" class="tab-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
+        지출관리
+      </a>
+      <a href="settings.html" class="tab-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        설정
+      </a>
+    </div>
+  </nav>
+</div>
+
+<!-- New project slide-in panel -->
+<div class="overlay" id="overlay"></div>
+<div class="side-panel" id="newPanel">
+  <div class="panel-head">
+    <span class="panel-title">새 프로젝트 만들기</span>
+    <button class="btn-icon" id="closePanel" aria-label="닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="panel-body">
+    <div class="form-group">
+      <label class="form-label">프로젝트명 <span style="color:var(--danger)">*</span></label>
+      <input type="text" class="form-input" id="np-name" placeholder="예: 2025 가을 학술제"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">설명</label>
+      <textarea class="form-textarea" id="np-desc" placeholder="프로젝트 간략 설명" style="min-height:72px"></textarea>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label class="form-label">시작일</label>
+        <input type="date" class="form-input" id="np-start"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">종료일</label>
+        <input type="date" class="form-input" id="np-end"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">총 예산 (원) <span style="color:var(--danger)">*</span></label>
+      <input type="number" class="form-input" id="np-budget" placeholder="0" min="0"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Slack 채널 <span style="color:var(--danger)">*</span></label>
+      <input type="text" class="form-input" id="np-slack" placeholder="#채널명"/>
+      <span class="form-hint">채널과 프로젝트는 1:1로 매핑됩니다</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">엑셀 양식</label>
+      <select class="form-select" id="np-template">
+        <option value="">나중에 설정</option>
+        <option value="standard">표준 양식 v2</option>
+        <option value="custom">커스텀 (업로드 필요)</option>
+      </select>
+    </div>
+    <p id="np-error" class="form-error hidden">프로젝트명, 예산, Slack 채널은 필수 항목입니다.</p>
+  </div>
+  <div class="panel-footer">
+    <button class="btn btn-secondary" id="cancelPanel" style="flex:1">취소</button>
+    <button class="btn btn-primary" id="saveProject" style="flex:2">프로젝트 만들기</button>
+  </div>
+</div>
+
+<script>
+function markClosed(btn) {
+  var row = btn.closest('tr') || btn.closest('.project-card-mobile');
+  if (!row) return;
+  var statusEl = row.querySelector('.badge-processing');
+  if (statusEl) {
+    statusEl.className = 'badge badge-created';
+    statusEl.textContent = '마감';
+  }
+  btn.remove();
+}
+
+var overlay  = document.getElementById('overlay');
+var newPanel = document.getElementById('newPanel');
+var npError  = document.getElementById('np-error');
+
+function openPanel(){
+  overlay.classList.add('open'); newPanel.classList.add('open');
+  document.getElementById('np-name').focus();
+}
+function closePanel(){
+  overlay.classList.remove('open'); newPanel.classList.remove('open');
+}
+
+document.getElementById('newProjectBtn').addEventListener('click', openPanel);
+document.getElementById('closePanel').addEventListener('click', closePanel);
+document.getElementById('cancelPanel').addEventListener('click', closePanel);
+overlay.addEventListener('click', closePanel);
+
+document.getElementById('saveProject').addEventListener('click', function(){
+  var name   = document.getElementById('np-name').value.trim();
+  var budget = document.getElementById('np-budget').value.trim();
+  var slack  = document.getElementById('np-slack').value.trim();
+  if (!name || !budget || !slack) { npError.classList.remove('hidden'); return; }
+  npError.classList.add('hidden');
+
+  var start = document.getElementById('np-start').value || '2025-09-01';
+  var end   = document.getElementById('np-end').value   || '2025-12-31';
+
+  var tbody = document.getElementById('projectTbody');
+  var tr = document.createElement('tr');
+  tr.className = 'clickable';
+
+  function td(content, style) {
+    var cell = document.createElement('td');
+    if (style) cell.setAttribute('style', style);
+    if (typeof content === 'string') {
+      cell.textContent = content;
+    } else {
+      cell.appendChild(content);
+    }
+    return cell;
+  }
+
+  var fmtBudget = '₩' + parseInt(budget,10).toLocaleString('ko-KR');
+
+  var budgetDiv = document.createElement('div'); budgetDiv.className = 'budget-cell';
+  var numsDiv = document.createElement('div'); numsDiv.className = 'budget-nums';
+  var usedSpan = document.createElement('span'); usedSpan.className = 'budget-used'; usedSpan.textContent = '₩0';
+  var limitSpan = document.createElement('span'); limitSpan.className = 'budget-limit'; limitSpan.textContent = '/ ' + fmtBudget;
+  numsDiv.appendChild(usedSpan); numsDiv.appendChild(limitSpan);
+  var pbDiv = document.createElement('div'); pbDiv.className = 'progress-bar';
+  var pfDiv = document.createElement('div'); pfDiv.className = 'progress-fill success'; pfDiv.style.width = '0%';
+  pbDiv.appendChild(pfDiv);
+  var pctSpan = document.createElement('span'); pctSpan.setAttribute('style','font-size:11.5px;color:var(--muted)'); pctSpan.textContent = '0% 집행';
+  budgetDiv.appendChild(numsDiv); budgetDiv.appendChild(pbDiv); budgetDiv.appendChild(pctSpan);
+
+  var channelSpan = document.createElement('span'); channelSpan.className = 'channel-chip'; channelSpan.textContent = slack;
+  var templateBadge = document.createElement('span'); templateBadge.className = 'badge badge-map-none'; templateBadge.textContent = '미설정';
+  var statusBadge = document.createElement('span'); statusBadge.className = 'badge badge-processing';
+  var dot = document.createElement('span'); dot.className = 'badge-dot'; statusBadge.appendChild(dot);
+  statusBadge.appendChild(document.createTextNode('진행 중'));
+
+  var actionsDiv = document.createElement('div'); actionsDiv.style.display = 'flex'; actionsDiv.style.gap = '6px';
+  var viewBtn = document.createElement('a'); viewBtn.href = 'expenses.html'; viewBtn.className = 'btn btn-sm btn-secondary'; viewBtn.textContent = '지출 보기';
+  var closeBtn = document.createElement('button'); closeBtn.className = 'btn btn-sm btn-ghost'; closeBtn.textContent = '마감';
+  closeBtn.addEventListener('click', function(){ markClosed(closeBtn); });
+  actionsDiv.appendChild(viewBtn); actionsDiv.appendChild(closeBtn);
+
+  tr.appendChild(td(name, 'font-weight:600'));
+  tr.appendChild(td(start + ' ~ ' + end, 'color:var(--muted);font-size:12.5px;white-space:nowrap'));
+  var channelTd = document.createElement('td'); channelTd.appendChild(channelSpan); tr.appendChild(channelTd);
+  var budgetTd = document.createElement('td'); budgetTd.appendChild(budgetDiv); tr.appendChild(budgetTd);
+  tr.appendChild(td('0건', 'text-align:center;font-variant-numeric:tabular-nums;font-weight:600'));
+  var tmplTd = document.createElement('td'); tmplTd.appendChild(templateBadge); tr.appendChild(tmplTd);
+  var statTd = document.createElement('td'); statTd.appendChild(statusBadge); tr.appendChild(statTd);
+  var actTd = document.createElement('td'); actTd.appendChild(actionsDiv); tr.appendChild(actTd);
+
+  tbody.insertBefore(tr, tbody.firstChild);
+
+  var countEl = document.getElementById('statCount');
+  countEl.textContent = String(tbody.children.length);
+
+  closePanel();
+  [document.getElementById('np-name'), document.getElementById('np-desc'),
+   document.getElementById('np-budget'), document.getElementById('np-slack')].forEach(function(el){ el.value = ''; });
+});
+
+['np-name','np-budget','np-slack'].forEach(function(id){
+  document.getElementById(id).addEventListener('input', function(){ npError.classList.add('hidden'); });
+});
+</script>
+</body>
+</html>
