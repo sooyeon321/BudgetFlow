@@ -1,0 +1,14 @@
+# Dependency directories
+node_modules/
+
+# Build outputs
+dist/
+cdk.out/
+.cdk.staging/
+*.js
+*.d.ts
+
+# 하위 모든 폴더(backend, infra)의 .env 파일 유출 원천 차단!
+**/.env
+**/.env.local
+.env
