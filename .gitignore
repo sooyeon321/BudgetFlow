@@ -3,3 +3,5 @@
 .omx/
 artifacts/
 *.zip
+.env
+node_modules/
