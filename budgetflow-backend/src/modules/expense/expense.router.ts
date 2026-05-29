@@ -13,7 +13,7 @@ router.get('/', authenticateJWT, (req: AuthRequest, res: Response) => {
 
 // 2. 지출 요약 통계 (GET /expenses/summary)
 router.get('/summary', authenticateJWT, (req: AuthRequest, res: Response) => {
-  res.status(200).json({ totalCount: 42, needsReviewCount: 5, confirmedCount: 37 });
+  res.status(200).json({ totalCount: 42, needsReviewCount: 5, approvedCount: 37 });
 });
 
 // 3. 지출 정보 수정 후 승인 (PATCH /expenses/:expenseId/approve)
@@ -21,7 +21,7 @@ router.patch('/:expenseId/approve', authenticateJWT, (req: AuthRequest, res: Res
   const { date, amount, categoryId, description, merchant, payerName } = req.body;
   res.status(200).json({
     id: req.params.expenseId,
-    status: 'confirmed',
+    status: 'approved',
     date, amount, categoryId, description, merchant, payerName
   });
 });

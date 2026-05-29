@@ -1,3 +1,4 @@
+import cors from 'cors';
 import express = require('express');  
 import * as dotenv from 'dotenv';
 import * as path from 'path';
@@ -16,6 +17,11 @@ import { authenticateJWT } from './middlewares/auth.middleware';
 dotenv.config();
 
 const app = express(); 
+
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  credentials: true,
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
