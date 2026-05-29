@@ -34,7 +34,7 @@ router.get('/:projectId', authenticateJWT, (req: AuthRequest, res: Response) => 
 });
 
 // 4. 정산 마감 기능 (POST /projects/{projectId}/close)
-router.post('/:projectId', authenticateJWT, (req: AuthRequest, res: Response) => {
+router.post('/:projectId/close', authenticateJWT, (req: AuthRequest, res: Response) => {
   res.status(200).json({ id: req.params.projectId, status: 'closed', closedAt: new Date() });
 });
 
