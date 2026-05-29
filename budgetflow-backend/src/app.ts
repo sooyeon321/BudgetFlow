@@ -32,7 +32,7 @@ try {
 // 15개 전체 API 세부 라우터 등록
 app.use('/api/auth', authRouter);
 app.use('/api/projects', authenticateJWT, projectRouter);
-app.use('/api/expenses', authenticateJWT, expenseRouter);
+app.use('/api/expenses', expenseRouter);
 app.use('/api/budget-categories', authenticateJWT, categoryRouter);
 app.use('/api/projects', authenticateJWT, templateRouter);
 app.use('/api/projects', authenticateJWT, exportRouter);
