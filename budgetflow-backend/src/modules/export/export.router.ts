@@ -1,22 +1,73 @@
 import { Router, Response } from 'express';
 import { authenticateJWT, AuthRequest } from '../../middlewares/auth.middleware';
+import { pool } from '../../config/database';
+import ExcelJS from 'exceljs';
 
 const router = Router();
 
-// 1. 지출내역서 생성 요청 (POST /projects/:projectId/exports/expense-report)
-router.post('/:projectId/exports/expense-report', authenticateJWT, (req: AuthRequest, res: Response) => {
-  res.status(200).json({
-    jobId: 'job_excel_999',
-    status: 'completed', // MVP 우선 즉시 완료처리 시연용
-    downloadUrl: 'https://budgetflow-s3.amazonaws.com/exports/report_2026.xlsx'
-  });
+// 1. Export job 목록 조회
+router.get('/:projectId/exports', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  const result = await pool.query(
+    'SELECT * FROM export_jobs WHERE project_id = $1 ORDER BY created_at DESC',
+    [req.params.projectId]
+  );
+  res.status(200).json(result.rows);
 });
 
-// 2. Export 결과 확인 폴링 (GET /projects/:projectId/exports)
-router.get('/:projectId/exports', authenticateJWT, (req: AuthRequest, res: Response) => {
-  res.status(200).json([
-    { jobId: 'job_excel_999', status: 'completed', downloadUrl: 'https://budgetflow-s3.amazonaws.com/exports/report_2026.xlsx' }
-  ]);
+// 2. 지출내역서 엑셀 생성
+router.post('/:projectId/exports/expense-report', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  const { projectId } = req.params;
+
+  // approved 지출 조회
+  const expenses = await pool.query(
+    `SELECT e.*, bc.name AS category_name
+     FROM expenses e
+     LEFT JOIN budget_categories bc ON e.category_id = bc.id
+     WHERE e.project_id = $1 AND e.status = 'approved'
+     ORDER BY e.date`,
+    [projectId]
+  );
+
+  const excluded = await pool.query(
+    `SELECT COUNT(*) FROM expenses WHERE project_id = $1 AND status = 'needs_review'`,
+    [projectId]
+  );
+
+  // 엑셀 생성
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('지출내역서');
+
+  sheet.columns = [
+    { header: '날짜', key: 'date', width: 15 },
+    { header: '사용처', key: 'merchant', width: 20 },
+    { header: '내용', key: 'description', width: 30 },
+    { header: '카테고리', key: 'category_name', width: 15 },
+    { header: '금액', key: 'amount', width: 12 },
+    { header: '결제자', key: 'payer_name', width: 12 },
+  ];
+
+  // 헤더 스타일
+  sheet.getRow(1).font = { bold: true };
+  sheet.getRow(1).fill = {
+    type: 'pattern', pattern: 'solid',
+    fgColor: { argb: 'FFD9E1F2' }
+  };
+
+  expenses.rows.forEach(row => sheet.addRow(row));
+
+  // export_jobs에 기록
+  const jobId = `export_${Date.now()}`;
+  await pool.query(
+    `INSERT INTO export_jobs (id, project_id, type, status, included_expense_count, excluded_review_count)
+     VALUES ($1, $2, 'expense_report', 'completed', $3, $4)`,
+    [jobId, projectId, expenses.rows.length, parseInt(excluded.rows[0].count)]
+  );
+
+  // 엑셀 파일로 응답
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="expense-report-${projectId}.xlsx"`);
+  await workbook.xlsx.write(res);
+  res.end();
 });
 
 export const exportRouter = router;
