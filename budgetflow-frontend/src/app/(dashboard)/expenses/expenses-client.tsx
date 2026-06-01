@@ -84,7 +84,7 @@ export function ExpensesClient() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedExpenseId, setSelectedExpenseId] = useState<
     string | null | undefined
-  >(undefined);
+  >(null);
   const [confirmVariant, setConfirmVariant] = useState<
     "close" | "export" | null
   >(null);
