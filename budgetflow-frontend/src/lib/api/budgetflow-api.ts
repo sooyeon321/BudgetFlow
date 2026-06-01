@@ -31,7 +31,7 @@ import {
   type TemplateMappingConfirmInput,
 } from "@/lib/forms/template";
 
-import { http, isApiConfigured } from "./http-client";
+import { downloadFile, http, isApiConfigured } from "./http-client";
 import {
   mockBudgetCategories,
   mockExpenses,
@@ -61,7 +61,7 @@ type BackendExpense = {
   categoryId?: string;
   date?: string;
   description?: string;
-  rejectReason?: string;
+  reviewReason?: string;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -73,15 +73,19 @@ type BackendCategory = {
   budgetLimit?: number;
   projectId?: string;
   keywords?: string[];
+  approvedAmount?: number;
+  remainingAmount?: number;
+  usageRate?: number;
   createdAt?: string;
 };
 
 type BackendExpenseSummary = {
-  totalCount?: number;
+  totalExpenseCount?: number;
   needsReviewCount?: number;
-  confirmedCount?: number;
   approvedCount?: number;
   rejectedCount?: number;
+  missingEvidenceCount?: number;
+  approvedAmount?: number;
 };
 
 type BackendExportJob = {
@@ -89,6 +93,8 @@ type BackendExportJob = {
   id?: string;
   status: string;
   downloadUrl?: string;
+  includedExpenseCount?: number;
+  excludedReviewCount?: number;
 };
 
 // ─── 어댑터 ────────────────────────────────────────────────────────────────────
@@ -130,7 +136,7 @@ function toExpense(r: BackendExpense): Expense {
     evidenceFileId: null,
     aiConfidence: 0,
     missingFields: [],
-    reviewReason: r.rejectReason ?? null,
+    reviewReason: r.reviewReason ?? null,
     createdAt: r.createdAt ?? now,
     updatedAt: r.updatedAt ?? now,
   };
@@ -138,6 +144,7 @@ function toExpense(r: BackendExpense): Expense {
 
 function toCategory(r: BackendCategory, projectId: string): BudgetCategory {
   const budgetLimit = r.budgetLimit ?? r.budgetAmount ?? 0;
+  const approvedAmount = r.approvedAmount ?? 0;
   const now = new Date().toISOString();
   return {
     id: r.id,
@@ -145,9 +152,10 @@ function toCategory(r: BackendCategory, projectId: string): BudgetCategory {
     name: r.name,
     budgetLimit,
     keywords: r.keywords ?? [],
-    approvedAmount: 0,
-    remainingAmount: budgetLimit,
-    usageRate: 0,
+    approvedAmount,
+    remainingAmount: r.remainingAmount ?? budgetLimit - approvedAmount,
+    usageRate:
+      r.usageRate ?? (budgetLimit > 0 ? approvedAmount / budgetLimit : 0),
     createdAt: r.createdAt ?? now,
   };
 }
@@ -158,12 +166,12 @@ function toExpenseSummary(
 ): ExpenseSummary {
   return {
     projectId,
-    totalExpenseCount: r.totalCount ?? 0,
+    totalExpenseCount: r.totalExpenseCount ?? 0,
     needsReviewCount: r.needsReviewCount ?? 0,
-    approvedCount: r.confirmedCount ?? r.approvedCount ?? 0,
+    approvedCount: r.approvedCount ?? 0,
     rejectedCount: r.rejectedCount ?? 0,
-    missingEvidenceCount: 0,
-    approvedAmount: 0,
+    missingEvidenceCount: r.missingEvidenceCount ?? 0,
+    approvedAmount: r.approvedAmount ?? 0,
   };
 }
 
@@ -174,8 +182,8 @@ function toExportJob(r: BackendExportJob, projectId: string): ExportJob {
     projectId,
     type: "expense_report",
     status: r.status as ExportJob["status"],
-    includedExpenseCount: 0,
-    excludedReviewCount: 0,
+    includedExpenseCount: r.includedExpenseCount ?? 0,
+    excludedReviewCount: r.excludedReviewCount ?? 0,
     downloadUrl: r.downloadUrl ?? null,
     expiresAt: null,
     createdAt: now,
@@ -505,12 +513,10 @@ export async function getExpenses({
   status = "all",
 }: GetExpensesParams): Promise<Expense[]> {
   if (isApiConfigured) {
-    const raw = await http.get<BackendExpense[]>("/api/expenses");
-    return raw
-      .filter((e) => !e.projectId || e.projectId === projectId)
-      .filter((e) => status === "all" || e.status === status)
-      .map(toExpense)
-      .sort(byNewestCreatedAt);
+    const params = new URLSearchParams({ projectId });
+    if (status !== "all") params.set("status", status);
+    const raw = await http.get<BackendExpense[]>(`/api/expenses?${params}`);
+    return raw.map(toExpense).sort(byNewestCreatedAt);
   }
 
   const expenses = mockExpenses
@@ -567,7 +573,7 @@ export async function rejectExpense(
   if (isApiConfigured) {
     const raw = await http.patch<BackendExpense>(
       `/api/expenses/${result.data.expenseId}/reject`,
-      { rejectReason: result.data.reason?.trim() || "관리자 반려" },
+      { reason: result.data.reason?.trim() || "관리자 반려" },
     );
     return toExpense(raw);
   }
@@ -587,7 +593,9 @@ export async function getExpenseSummary(
   projectId: string,
 ): Promise<ExpenseSummary> {
   if (isApiConfigured) {
-    const raw = await http.get<BackendExpenseSummary>("/api/expenses/summary");
+    const raw = await http.get<BackendExpenseSummary>(
+      `/api/expenses/summary?projectId=${projectId}`,
+    );
     return toExpenseSummary(raw, projectId);
   }
 
@@ -709,11 +717,22 @@ export async function requestExpenseReportExport(
   projectId: string,
 ): Promise<ExportJob> {
   if (isApiConfigured) {
-    const raw = await http.post<BackendExportJob>(
+    await downloadFile(
       `/api/projects/${projectId}/exports/expense-report`,
-      {},
+      `expense-report-${projectId}.xlsx`,
     );
-    return toExportJob(raw, projectId);
+    const now = new Date().toISOString();
+    return {
+      id: `export-${Date.now()}`,
+      projectId,
+      type: "expense_report",
+      status: "completed",
+      includedExpenseCount: 0,
+      excludedReviewCount: 0,
+      downloadUrl: null,
+      expiresAt: null,
+      createdAt: now,
+    };
   }
 
   findProjectIndex(projectId);
