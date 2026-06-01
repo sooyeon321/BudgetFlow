@@ -1,0 +1,6 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="BudgetFlow">
+  <rect width="48" height="48" rx="12" fill="#126B5D"></rect>
+  <rect x="12" y="13" width="24" height="6" rx="3" fill="#FFFFFF"></rect>
+  <rect x="15" y="22.5" width="21" height="6" rx="3" fill="#FFFFFF" fill-opacity="0.82"></rect>
+  <rect x="18" y="32" width="18" height="6" rx="3" fill="#EFC877"></rect>
+</svg>
