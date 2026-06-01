@@ -8,7 +8,7 @@ import {
 } from "@aws-sdk/client-bedrock-runtime";
 
 const client = new BedrockRuntimeClient({
-  region: process.env.AWS_REGION ?? "ap-northeast-2",
+  region: process.env.AWS_REGION ?? "us-east-1",
 });
 
 const MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0";
