@@ -13,13 +13,13 @@ type StatusTone =
   | "exported";
 
 const statusToneClass: Record<StatusTone, string> = {
-  default: "border-zinc-200 bg-zinc-50 text-zinc-700",
-  approved: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  review: "border-amber-200 bg-amber-50 text-amber-800",
-  missing: "border-red-200 bg-red-50 text-red-700",
-  processing: "border-blue-200 bg-blue-50 text-blue-700",
-  rejected: "border-zinc-300 bg-zinc-100 text-zinc-700",
-  exported: "border-violet-200 bg-violet-50 text-violet-700",
+  default: "border-[#E1E6EA] bg-[#EFF2F4] text-[#4D575F]",
+  approved: "border-[#ADDDD3] bg-[#E6F4EC] text-[#11623D]",
+  review: "border-[#EFC877] bg-[#FBF0DC] text-[#855210]",
+  missing: "border-[#F8DEDB] bg-[#FBE9E7] text-[#8A2A24]",
+  processing: "border-[#B8D3EC] bg-[#E7F0F9] text-[#1B466F]",
+  rejected: "border-[#CBD3D9] bg-[#EFF2F4] text-[#4D575F]",
+  exported: "border-[#ADDDD3] bg-[#EFF8F6] text-[#0F574C]",
 };
 
 export function BrandLink({ className }: { className?: string }) {
@@ -27,14 +27,17 @@ export function BrandLink({ className }: { className?: string }) {
     <Link
       href="/projects"
       className={cn(
-        "inline-flex items-center gap-2 text-sm font-bold tracking-tight text-zinc-950",
+        "inline-flex items-center gap-2 text-sm font-bold tracking-tight text-[#161B1F]",
         className,
       )}
     >
-      <span className="grid size-8 place-items-center rounded-lg bg-zinc-950 text-xs font-bold text-white shadow-sm">
+      <span className="grid size-8 place-items-center rounded-lg bg-[#126B5D] text-xs font-bold text-white shadow-sm">
         BF
       </span>
-      <span>BudgetFlow</span>
+      <span>
+        <b>Budget</b>
+        <span className="text-[#126B5D]">Flow</span>
+      </span>
     </Link>
   );
 }
@@ -51,7 +54,7 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex min-h-6 items-center rounded-md border px-2 py-0.5 text-xs font-semibold leading-tight",
+        "inline-flex min-h-6 items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold leading-tight",
         statusToneClass[tone],
         className,
       )}
@@ -71,7 +74,10 @@ export function Panel({
 } & Omit<ComponentProps<"section">, "children">) {
   return (
     <section
-      className={cn("rounded-[10px] border border-zinc-200 bg-white shadow-sm", className)}
+      className={cn(
+        "rounded-xl border border-[#E1E6EA] bg-white shadow-sm",
+        className,
+      )}
       {...props}
     >
       {children}
@@ -93,19 +99,23 @@ export function PageHeader({
   return (
     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div className="min-w-0 w-full max-w-xs sm:max-w-3xl">
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-zinc-500">
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#9AA6AF]">
           {eyebrow}
         </p>
-        <h1 className="mt-2 break-keep text-2xl font-bold tracking-tight text-zinc-950 sm:text-3xl">
+        <h1 className="mt-2 break-keep text-2xl font-bold tracking-tight text-[#161B1F] sm:text-3xl">
           {title}
         </h1>
         {lead ? (
-          <p className="mt-2 break-all text-sm leading-6 text-zinc-600 sm:text-[0.95rem]">
+          <p className="mt-2 break-all text-sm leading-6 text-[#4D575F] sm:text-[0.95rem]">
             {lead}
           </p>
         ) : null}
       </div>
-      {actions ? <div className="flex w-full min-w-0 flex-wrap gap-2 lg:w-auto lg:shrink-0">{actions}</div> : null}
+      {actions ? (
+        <div className="flex w-full min-w-0 flex-wrap gap-2 lg:w-auto lg:shrink-0">
+          {actions}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -121,7 +131,7 @@ export function PriorityStrip({
   return (
     <section
       className={cn(
-        "grid gap-3 rounded-[10px] border border-zinc-200 bg-white p-3 shadow-sm md:grid-cols-3",
+        "grid gap-3 rounded-xl border border-[#E1E6EA] bg-white p-3 shadow-sm md:grid-cols-3",
         className,
       )}
       {...props}
@@ -144,17 +154,20 @@ export function PriorityStep({
   title: string;
   tone: StatusTone;
 }) {
+  const bgClass =
+    tone === "missing"
+      ? "border-[#F8DEDB] bg-[#FBE9E7]/60"
+      : tone === "review"
+        ? "border-[#EFC877] bg-[#FBF0DC]/60"
+        : "border-[#E1E6EA] bg-[#F7F9FA]";
+
   return (
-    <article
-      className={cn(
-        "rounded-lg border border-zinc-200 bg-zinc-50/60 p-3",
-        tone === "missing" || tone === "review" ? "border-amber-200 bg-amber-50/70" : null,
-        className,
-      )}
-    >
+    <article className={cn("rounded-lg border p-3", bgClass, className)}>
       <StatusBadge tone={tone}>{status}</StatusBadge>
-      <strong className="mt-2 block text-sm font-bold text-zinc-950">{title}</strong>
-      <p className="mt-1 text-sm leading-6 text-zinc-600">{children}</p>
+      <strong className="mt-2 block text-sm font-bold text-[#161B1F]">
+        {title}
+      </strong>
+      <p className="mt-1 text-sm leading-6 text-[#4D575F]">{children}</p>
     </article>
   );
 }
@@ -183,15 +196,18 @@ export function ProgressBar({
 }) {
   const width = Math.min(100, Math.max(0, value));
   const toneClass = {
-    approved: "bg-emerald-500",
-    review: "bg-amber-500",
-    processing: "bg-blue-500",
-    missing: "bg-red-500",
+    approved: "bg-[#1E9E62]",
+    review: "bg-[#C9821A]",
+    processing: "bg-[#2D6FB3]",
+    missing: "bg-[#C8443B]",
   }[tone];
 
   return (
-    <div className="h-2 overflow-hidden rounded-full bg-zinc-100">
-      <div className={cn("h-full rounded-full", toneClass)} style={{ width: `${width}%` }} />
+    <div className="h-2 overflow-hidden rounded-full bg-[#EFF2F4]">
+      <div
+        className={cn("h-full rounded-full", toneClass)}
+        style={{ width: `${width}%` }}
+      />
     </div>
   );
 }
