@@ -23,7 +23,11 @@ export function DashboardNav({ placement = "desktop" }: DashboardNavProps) {
   return (
     <nav
       aria-label={isMobile ? "모바일 주요 화면" : "주요 화면"}
-      className={cn(isMobile ? "grid grid-cols-3 gap-1" : "hidden items-center gap-1 md:flex")}
+      className={cn(
+        isMobile
+          ? "grid grid-cols-3 gap-1"
+          : "hidden items-center gap-1 md:flex",
+      )}
     >
       {navItems.map((item) => {
         const Icon = item.icon;
@@ -39,8 +43,8 @@ export function DashboardNav({ placement = "desktop" }: DashboardNavProps) {
                 ? "min-h-14 flex-col px-2 text-[0.72rem]"
                 : "h-10 px-3 text-sm",
               isActive
-                ? "bg-zinc-950 text-white shadow-sm"
-                : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950",
+                ? "bg-[#EFF8F6] text-[#0F574C] shadow-sm"
+                : "text-[#4D575F] hover:bg-[#EFF2F4] hover:text-[#161B1F]",
             )}
             href={item.href}
             key={item.href}
