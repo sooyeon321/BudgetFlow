@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { authenticateJWT, AuthRequest } from '../../middlewares/auth.middleware';
 import { pool } from '../../config/database';
 import ExcelJS from 'exceljs';
+import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
@@ -56,7 +57,7 @@ router.post('/:projectId/exports/expense-report', authenticateJWT, async (req: A
   expenses.rows.forEach(row => sheet.addRow(row));
 
   // export_jobs에 기록
-  const jobId = `export_${Date.now()}`;
+  const jobId = `export_${uuidv4()}`;
   await pool.query(
     `INSERT INTO export_jobs (id, project_id, type, status, included_expense_count, excluded_review_count)
      VALUES ($1, $2, 'expense_report', 'completed', $3, $4)`,
