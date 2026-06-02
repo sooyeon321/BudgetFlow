@@ -1,6 +1,8 @@
 import { Router, Response } from 'express';
 import { authenticateJWT, AuthRequest } from '../../middlewares/auth.middleware';
 import { pool } from '../../config/database';
+import { aiOcrService } from '../ai_ocr/ai_ocr.service';
+import { v4 as uuidv4 } from 'uuid'; // npm install uuid @types/uuid
 
 const router = Router();
 
@@ -68,23 +70,87 @@ router.patch('/:expenseId/reject', authenticateJWT, async (req: AuthRequest, res
 
 // 5. 봇 → 백엔드 지출 등록 (인증 없음)
 router.post('/', async (req: AuthRequest, res: Response) => {
-  const { slackUserId, channelId, type, text, imageUrl } = req.body;
+  const { slackUserId, channelId, type, text, imageUrl, projectId, submittedBy, categories } = req.body;
 
   if (!slackUserId || !channelId || !type) {
-    return res.status(400).json({ error: '필수 필드가 누락되었습니다. (slackUserId, channelId, type)' });
-  }
-  if (!['text', 'image', 'text_image'].includes(type)) {
-    return res.status(400).json({ error: 'type은 text / image / text_image 중 하나여야 합니다.' });
+    return res.status(400).json({ error: '필수 필드가 누락되었습니다.' });
   }
 
-  // LLM/OCR 연동 전 임시 응답
-  return res.status(200).json({
-    status: 'needs_review',
-    date: new Date().toISOString().split('T')[0],
-    amount: 0,
-    category: null,
-    description: text ?? null,
-  });
+  const today = new Date().toISOString().split('T')[0];
+
+  if (type === 'text') {
+    const llmResult = await aiOcrService.analyzeText({
+      text, projectId, requestDate: today,
+      timezone: 'Asia/Seoul', submittedBy, categories: categories ?? [],
+    });
+
+    if (llmResult.action === 'request_re_input') {
+      return res.status(200).json({ action: 'request_re_input', userId: slackUserId });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO expenses
+        (id, project_id, slack_user_id, date, amount, merchant, description,
+         category_id, payer_name, evidence_status, ai_confidence, status, missing_fields, review_reason)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+       RETURNING *`,
+      [
+        `exp_${uuidv4()}`,
+        projectId, slackUserId,
+        llmResult.date ?? today,
+        llmResult.amount,
+        llmResult.merchant ?? '미확인',
+        llmResult.description,
+        llmResult.categoryId,
+        llmResult.payerName ?? submittedBy?.displayName ?? '미확인',
+        llmResult.evidenceStatus,
+        llmResult.aiConfidence,
+        llmResult.needsReview ? 'needs_review' : 'created',
+        llmResult.missingFields,
+        llmResult.reviewReason,
+      ]
+    );
+    return res.status(200).json(result.rows[0]);
+  }
+
+  if (type === 'image' || type === 'text_image') {
+    const llmResult = await aiOcrService.analyzeImage({
+      s3Key: imageUrl, projectId, evidenceFileId: imageUrl,
+      submittedBy, categories: categories ?? [],
+    });
+
+    if (llmResult.amount === null) {
+      return res.status(200).json({ action: 'request_re_input', userId: slackUserId });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO expenses
+        (id, project_id, slack_user_id, date, amount, merchant, description,
+         category_id, payer_name, evidence_status, evidence_file_id,
+         ai_confidence, status, missing_fields, review_reason)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+       RETURNING *`,
+      [
+        `exp_${uuidv4()}`,
+        projectId, slackUserId,
+        llmResult.date ?? today,
+        llmResult.amount,
+        llmResult.merchant ?? '미확인',
+        llmResult.description,
+        llmResult.categoryId,
+        llmResult.payerName ?? submittedBy?.displayName ?? '미확인',
+        llmResult.evidenceStatus,
+        llmResult.evidenceFileId,
+        llmResult.aiConfidence,
+        llmResult.needsReview ? 'needs_review' : 'created',
+        llmResult.missingFields,
+        llmResult.reviewReason,
+      ]
+    );
+    return res.status(200).json(result.rows[0]);
+  }
+
+  return res.status(400).json({ error: '지원하지 않는 type입니다.' });
 });
 
 export const expenseRouter = router;
