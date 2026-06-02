@@ -1,15 +1,78 @@
 import { App } from '@slack/bolt';
 import * as dotenv from 'dotenv';
+import axios from 'axios';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 dotenv.config();
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN!,
   signingSecret: process.env.SLACK_SIGNING_SECRET!,
-  port: 3000,
+  port: Number(process.env.PORT) || 4000,
 });
 
+// EC2 IAM Role로 자동 인증 (Access Key 불필요)
+const s3 = new S3Client({
+  region: process.env.AWS_REGION || 'ap-northeast-2',
+});
+
+// 슬랙에서 이미지 다운로드
+async function downloadImage(url: string): Promise<Buffer> {
+  const response = await axios.get(url, {
+    headers: {
+      Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}`,
+    },
+    responseType: 'arraybuffer',
+  });
+  return Buffer.from(response.data);
+}
+
+// S3에 업로드 후 URL 반환
+async function uploadToS3(
+  buffer: Buffer,
+  fileName: string,
+  mimeType: string
+): Promise<string> {
+  const key = `receipts/${Date.now()}_${fileName}`;
+
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME!,
+      Key: key,
+      Body: buffer,
+      ContentType: mimeType,
+    })
+  );
+
+  return `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-northeast-2'}.amazonaws.com/${key}`;
+}
+
+// 백엔드에 전달
+async function sendToBackend(payload: object) {
+  const response = await axios.post(
+    `${process.env.BACKEND_URL}/api/expenses`,
+    payload,
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+  return response.data;
+}
+
+// 결과 메시지 전송
+async function sendResultMessage(client: any, channel: string, result: any) {
+  if (result.status === 'needs_review') {
+    await client.chat.postMessage({
+      channel,
+      text: `⚠️ 검토가 필요한 항목이 있습니다.\n사유: ${result.reason}`,
+    });
+  } else {
+    await client.chat.postMessage({
+      channel,
+      text: `✅ 등록됐습니다!\n날짜: ${result.date}\n금액: ${result.amount}원\n항목: ${result.category}`,
+    });
+  }
+}
+
 app.event('message', async ({ event, client }) => {
-  // 봇 자신의 메시지는 무시 (무한루프 방지)
+  // 봇 자신의 메시지는 무시
   if ('bot_id' in event) return;
 
   const msg = event as any;
@@ -19,19 +82,46 @@ app.event('message', async ({ event, client }) => {
   const hasText = text.trim().length > 0;
   const hasImage = files.some((f: any) => f.mimetype?.startsWith('image/'));
 
-  if (hasImage && hasText) {
-    console.log('📷📝 텍스트 + 이미지');
-  } else if (hasImage) {
-    console.log('📷 이미지만');
-  } else if (hasText) {
-    console.log('📝 텍스트만');
-  }
-
   // 접수 확인 메시지 전송
   await client.chat.postMessage({
     channel: msg.channel,
     text: '✅ 접수됐습니다. 분석 중...',
   });
+
+  try {
+    let s3Url: string | null = null;
+
+    // 이미지가 있으면 다운로드 후 S3 업로드
+    if (hasImage) {
+      const file = files.find((f: any) => f.mimetype?.startsWith('image/'));
+      const imageBuffer = await downloadImage(file.url_private);
+      s3Url = await uploadToS3(imageBuffer, file.name, file.mimetype);
+      console.log('S3 업로드 완료:', s3Url);
+    }
+
+    // 페이로드 구성
+    const payload: any = {
+      slackUserId: msg.user,
+      channelId: msg.channel,
+      type: hasImage && hasText ? 'text_image' : hasImage ? 'image' : 'text',
+    };
+
+    if (hasText) payload.text = text;
+    if (s3Url) payload.imageUrl = s3Url;
+
+    // 백엔드 호출
+    const result = await sendToBackend(payload);
+    console.log('백엔드 응답:', result);
+
+    await sendResultMessage(client, msg.channel, result);
+
+  } catch (error) {
+    console.error('처리 중 오류:', error);
+    await client.chat.postMessage({
+      channel: msg.channel,
+      text: '❌ 처리 중 오류가 발생했습니다. 다시 시도해주세요.',
+    });
+  }
 });
 
 (async () => {
