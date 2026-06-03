@@ -48,7 +48,7 @@ router.patch('/:expenseId/approve', authenticateJWT, async (req: AuthRequest, re
   const { date, amount, categoryId, description, merchant, payerName } = req.body;
   const result = await pool.query(
     `UPDATE expenses SET status = 'approved', date = $1, amount = $2, category_id = $3,
-     description = $4, merchant = $5, payer_name = $6, review_reason = null, updated_at = NOW()
+     description = $4, merchant = COALESCE($5, merchant), payer_name = COALESCE($6, payer_name), review_reason = null, updated_at = NOW()
      WHERE id = $7 RETURNING *`,
     [date, amount, categoryId, description, merchant, payerName, req.params.expenseId]
   );
