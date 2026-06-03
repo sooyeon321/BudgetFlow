@@ -39,47 +39,47 @@ import {
   mockProjects,
 } from "./mock-data";
 
-// ─── 백엔드 응답 타입 ──────────────────────────────────────────────────────────
+// ─── 백엔드 응답 타입 (http-client camelizeKeys 적용 후 기준) ─────────────────
 
 type BackendProject = {
   id: string;
   name: string;
   status: "active" | "closed";
-  created_at?: string;
-  closed_at?: string;
-  total_budget?: number;
-  organization_id?: string;
-  slack_channel_id?: string;
-  slack_channel_name?: string;
-  template_file_name?: string;
-  template_mapping_status?: string;
+  createdAt?: string;
+  closedAt?: string;
+  totalBudget?: number;
+  organizationId?: string;
+  slackChannelId?: string;
+  slackChannelName?: string;
+  templateFileName?: string;
+  templateMappingStatus?: string;
 };
 
 type BackendExpense = {
   id: string;
-  project_id?: string;
+  projectId?: string;
   amount: number;
   status: string;
   merchant: string;
-  payer_name: string;
-  category_id?: string;
+  payerName: string;
+  categoryId?: string;
   date?: string;
   description?: string;
-  review_reason?: string;
-  evidence_status?: string;
-  ai_confidence?: number;
-  missing_fields?: string[];
-  created_at?: string;
-  updated_at?: string;
+  reviewReason?: string;
+  evidenceStatus?: string;
+  aiConfidence?: number;
+  missingFields?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 type BackendCategory = {
   id: string;
   name: string;
-  budget_limit?: number;
-  project_id?: string;
+  budgetLimit?: number;
+  projectId?: string;
   keywords?: string[];
-  created_at?: string;
+  createdAt?: string;
   approvedAmount?: number | string;
   remainingAmount?: number | string;
   usageRate?: number | string;
@@ -98,9 +98,10 @@ type BackendExportJob = {
   id?: string;
   jobId?: string;
   status: string;
-  download_url?: string;
-  included_expense_count?: number | string;
-  excluded_review_count?: number | string;
+  downloadUrl?: string;
+  includedExpenseCount?: number | string;
+  excludedReviewCount?: number | string;
+  createdAt?: string;
 };
 
 // ─── 어댑터 ────────────────────────────────────────────────────────────────────
@@ -111,17 +112,17 @@ function toProject(r: BackendProject): Project {
   const now = new Date().toISOString();
   return {
     id: r.id,
-    organizationId: r.organization_id ?? FALLBACK_ORG_ID,
+    organizationId: r.organizationId ?? FALLBACK_ORG_ID,
     name: r.name,
-    totalBudget: r.total_budget ?? 0,
+    totalBudget: r.totalBudget ?? 0,
     status: r.status,
-    slackChannelId: r.slack_channel_id ?? "",
-    slackChannelName: r.slack_channel_name ?? "",
-    templateFileName: r.template_file_name ?? null,
+    slackChannelId: r.slackChannelId ?? "",
+    slackChannelName: r.slackChannelName ?? "",
+    templateFileName: r.templateFileName ?? null,
     templateMappingStatus:
-      (r.template_mapping_status as Project["templateMappingStatus"]) ?? "none",
-    createdAt: r.created_at ?? now,
-    closedAt: r.closed_at ?? null,
+      (r.templateMappingStatus as Project["templateMappingStatus"]) ?? "none",
+    createdAt: r.createdAt ?? now,
+    closedAt: r.closedAt ?? null,
   };
 }
 
@@ -129,40 +130,40 @@ function toExpense(r: BackendExpense): Expense {
   const now = new Date().toISOString();
   return {
     id: r.id,
-    projectId: r.project_id ?? "",
-    categoryId: r.category_id ?? "",
+    projectId: r.projectId ?? "",
+    categoryId: r.categoryId ?? "",
     date: r.date ?? now.slice(0, 10),
     amount: Number(r.amount),
     merchant: r.merchant,
     description: r.description ?? "",
-    payerName: r.payer_name,
+    payerName: r.payerName,
     inputChannel: "slack",
     slackUserId: "",
     status: r.status as ExpenseStatus,
-    evidenceStatus: (r.evidence_status as Expense["evidenceStatus"]) ?? "none",
+    evidenceStatus: (r.evidenceStatus as Expense["evidenceStatus"]) ?? "none",
     evidenceFileId: null,
-    aiConfidence: Number(r.ai_confidence ?? 0),
-    missingFields: r.missing_fields ?? [],
-    reviewReason: r.review_reason ?? null,
-    createdAt: r.created_at ?? now,
-    updatedAt: r.updated_at ?? now,
+    aiConfidence: Number(r.aiConfidence ?? 0),
+    missingFields: r.missingFields ?? [],
+    reviewReason: r.reviewReason ?? null,
+    createdAt: r.createdAt ?? now,
+    updatedAt: r.updatedAt ?? now,
   };
 }
 
 function toCategory(r: BackendCategory, projectId: string): BudgetCategory {
-  const budgetLimit = Number(r.budget_limit ?? 0);
+  const budgetLimit = Number(r.budgetLimit ?? 0);
   const approvedAmount = Number(r.approvedAmount ?? 0);
   const now = new Date().toISOString();
   return {
     id: r.id,
-    projectId: r.project_id ?? projectId,
+    projectId: r.projectId ?? projectId,
     name: r.name,
     budgetLimit,
     keywords: r.keywords ?? [],
     approvedAmount,
     remainingAmount: Number(r.remainingAmount ?? budgetLimit - approvedAmount),
     usageRate: Number(r.usageRate ?? 0),
-    createdAt: r.created_at ?? now,
+    createdAt: r.createdAt ?? now,
   };
 }
 
@@ -188,11 +189,11 @@ function toExportJob(r: BackendExportJob, projectId: string): ExportJob {
     projectId,
     type: "expense_report",
     status: r.status as ExportJob["status"],
-    includedExpenseCount: Number(r.included_expense_count ?? 0),
-    excludedReviewCount: Number(r.excluded_review_count ?? 0),
-    downloadUrl: r.download_url ?? null,
+    includedExpenseCount: Number(r.includedExpenseCount ?? 0),
+    excludedReviewCount: Number(r.excludedReviewCount ?? 0),
+    downloadUrl: r.downloadUrl ?? null,
     expiresAt: null,
-    createdAt: now,
+    createdAt: r.createdAt ?? now,
   };
 }
 
