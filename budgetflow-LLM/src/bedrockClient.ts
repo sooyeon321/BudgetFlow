@@ -1,39 +1,28 @@
-// BudgetFlow LLM Service - Bedrock 클라이언트
-// AWS SDK v3 사용
-// npm install @aws-sdk/client-bedrock-runtime
+// BudgetFlow LLM Service - Anthropic API 클라이언트
+// Bedrock 권한 이슈로 Anthropic API 직접 호출 방식으로 전환
 
-import {
-  BedrockRuntimeClient,
-  InvokeModelCommand,
-} from "@aws-sdk/client-bedrock-runtime";
+import Anthropic from "@anthropic-ai/sdk";
 
-const client = new BedrockRuntimeClient({
-  region: process.env.AWS_REGION ?? "us-east-1",
-});
-
-const MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0";
+const MODEL_ID = "claude-haiku-4-5-20251001";
 
 /**
- * Bedrock Claude Haiku를 호출하고 JSON 응답을 반환합니다.
- * 응답이 JSON이 아니면 예외를 발생시킵니다.
+ * Anthropic API를 호출하고 JSON 응답을 반환합니다.
  */
 export async function callBedrock(prompt: string): Promise<Record<string, unknown>> {
-  const command = new InvokeModelCommand({
-    modelId: MODEL_ID,
-    contentType: "application/json",
-    accept: "application/json",
-    body: JSON.stringify({
-      anthropic_version: "bedrock-2023-05-31",
-      max_tokens: 1000,
-      messages: [
-        { role: "user", content: prompt },
-      ],
-    }),
+  const client = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
   });
 
-  const response = await client.send(command);
-  const body = JSON.parse(new TextDecoder().decode(response.body));
-  const text = body.content[0].text.trim();
+  const message = await client.messages.create({
+    model: MODEL_ID,
+    max_tokens: 1000,
+    messages: [
+      { role: "user", content: prompt },
+    ],
+  });
 
-  return JSON.parse(text); // JSON 파싱 실패 시 예외 발생
+  // 마크다운 코드블록 제거 후 JSON 파싱
+  const raw = (message.content[0] as { type: string; text: string }).text.trim();
+  const clean = raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+  return JSON.parse(clean);
 }
