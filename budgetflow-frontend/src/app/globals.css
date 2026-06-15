@@ -142,6 +142,44 @@
   --fg1: var(--slate-900);
   --fg2: var(--slate-600);
   --fg3: var(--slate-400);
+
+  /* Carbon-inspired semantic aliases for BudgetFlow surfaces. */
+  --bf-background: var(--slate-50);
+  --bf-layer-01: #ffffff;
+  --bf-layer-02: var(--slate-50);
+  --bf-layer-hover: var(--slate-100);
+  --bf-layer-selected: rgb(22 27 31 / 0.04);
+  --bf-border-subtle: var(--slate-200);
+  --bf-border-strong: var(--slate-300);
+  --bf-text-primary: var(--slate-900);
+  --bf-text-secondary: var(--slate-600);
+  --bf-text-muted: var(--slate-400);
+  --bf-primary: var(--teal-600);
+  --bf-primary-hover: var(--teal-700);
+  --bf-primary-subtle: var(--teal-50);
+  --bf-primary-muted: var(--teal-100);
+  --bf-focus: var(--teal-600);
+  --bf-support-success: var(--success);
+  --bf-support-success-bg: var(--success-bg);
+  --bf-support-success-fg: var(--success-fg);
+  --bf-support-success-border: var(--teal-200);
+  --bf-support-warning: var(--warning);
+  --bf-support-warning-bg: var(--warning-bg);
+  --bf-support-warning-fg: var(--warning-fg);
+  --bf-support-warning-border: var(--amber-300);
+  --bf-support-error: var(--error);
+  --bf-support-error-bg: var(--error-bg);
+  --bf-support-error-fg: var(--error-fg);
+  --bf-support-error-border: #f8dedb;
+  --bf-support-info: var(--info);
+  --bf-support-info-bg: var(--info-bg);
+  --bf-support-info-fg: var(--info-fg);
+  --bf-support-info-border: #b8d3ec;
+  --bf-status-exported-bg: var(--teal-50);
+  --bf-status-exported-fg: var(--teal-700);
+  --bf-status-exported-border: var(--teal-200);
+  --bf-row-missing: var(--row-missing);
+  --bf-row-review: var(--row-review);
 }
 
 .dark {
@@ -213,7 +251,7 @@
   }
 
   .bf-money {
-    @apply font-mono tabular-nums tracking-tight;
+    @apply font-mono tabular-nums;
     color: var(--slate-900);
   }
 

@@ -41,18 +41,18 @@ export function LoginClient() {
   });
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-zinc-50 px-5 py-8">
+    <main className="flex min-h-dvh items-center justify-center bg-[var(--bf-background)] px-5 py-8">
       <section aria-label="로그인" className="w-full max-w-[420px]">
         <Panel className="w-full p-6 shadow-md sm:p-8">
           <BrandLink className="mb-6" />
           <div className="mb-6">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-zinc-500">
+            <p className="text-xs font-bold uppercase text-[var(--bf-text-muted)]">
               Sign in
             </p>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-zinc-950">
+            <h1 className="mt-2 text-2xl font-bold text-[var(--bf-text-primary)]">
               BudgetFlow 로그인
             </h1>
-            <p className="mt-2 text-sm leading-6 text-zinc-600">
+            <p className="mt-2 text-sm leading-6 text-[var(--bf-text-secondary)]">
               관리자 계정으로 예산 정산 작업을 계속합니다.
             </p>
           </div>
@@ -75,7 +75,7 @@ export function LoginClient() {
                 />
                 <button
                   aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
-                  className="absolute right-1 top-1 inline-grid size-8 place-items-center rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+                  className="absolute right-0 top-0 inline-grid size-10 place-items-center rounded-md text-[var(--bf-text-secondary)] hover:bg-[var(--bf-layer-hover)] hover:text-[var(--bf-text-primary)] focus-visible:ring-3 focus-visible:ring-ring/50"
                   onClick={() => setShowPassword((current) => !current)}
                   type="button"
                 >
@@ -84,7 +84,11 @@ export function LoginClient() {
               </div>
             </FormField>
 
-            {error ? <p className="text-sm font-medium text-red-700">{error}</p> : null}
+            {error ? (
+              <p className="text-sm font-medium text-[var(--bf-support-error-fg)]">
+                {error}
+              </p>
+            ) : null}
 
             <Button
               className="h-12 w-full"

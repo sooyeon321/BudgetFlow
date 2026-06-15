@@ -27,7 +27,7 @@ export function AppSidebar() {
           height={28}
           className="rounded-[7px]"
         />
-        <span className="font-bold text-[18px] tracking-[-0.02em]">
+        <span className="font-bold text-[18px]">
           <b className="text-white">Budget</b>
           <span className="text-[#79C5B6]">Flow</span>
         </span>
