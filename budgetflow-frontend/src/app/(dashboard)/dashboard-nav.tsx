@@ -43,8 +43,8 @@ export function DashboardNav({ placement = "desktop" }: DashboardNavProps) {
                 ? "min-h-14 flex-col px-2 text-[0.72rem]"
                 : "h-10 px-3 text-sm",
               isActive
-                ? "bg-[#EFF8F6] text-[#0F574C] shadow-sm"
-                : "text-[#4D575F] hover:bg-[#EFF2F4] hover:text-[#161B1F]",
+                ? "bg-[var(--bf-primary-subtle)] text-[var(--bf-status-exported-fg)] shadow-sm"
+                : "text-[var(--bf-text-secondary)] hover:bg-[var(--bf-layer-hover)] hover:text-[var(--bf-text-primary)]",
             )}
             href={item.href}
             key={item.href}

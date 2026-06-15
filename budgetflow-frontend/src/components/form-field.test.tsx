@@ -30,4 +30,16 @@ describe("FormField", () => {
     expect(withError).toContain("금액을 입력하세요.");
     expect(withoutError).not.toContain("금액을 입력하세요.");
   });
+
+  it("links field errors to controls for assistive technology", () => {
+    const html = renderToStaticMarkup(
+      <FormField label="금액" error="금액을 입력하세요.">
+        <input name="amount" />
+      </FormField>,
+    );
+
+    expect(html).toContain("aria-invalid=\"true\"");
+    expect(html).toContain("aria-describedby=");
+    expect(html).toContain("id=\"");
+  });
 });

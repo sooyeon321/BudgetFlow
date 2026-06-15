@@ -1,25 +1,49 @@
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 
+import type { StatusTone } from "@/lib/status-tone";
 import { cn } from "@/lib/utils";
 
-type StatusTone =
-  | "default"
-  | "approved"
-  | "review"
-  | "missing"
-  | "processing"
-  | "rejected"
-  | "exported";
-
 const statusToneClass: Record<StatusTone, string> = {
-  default: "border-[#E1E6EA] bg-[#EFF2F4] text-[#4D575F]",
-  approved: "border-[#ADDDD3] bg-[#E6F4EC] text-[#11623D]",
-  review: "border-[#EFC877] bg-[#FBF0DC] text-[#855210]",
-  missing: "border-[#F8DEDB] bg-[#FBE9E7] text-[#8A2A24]",
-  processing: "border-[#B8D3EC] bg-[#E7F0F9] text-[#1B466F]",
-  rejected: "border-[#CBD3D9] bg-[#EFF2F4] text-[#4D575F]",
-  exported: "border-[#ADDDD3] bg-[#EFF8F6] text-[#0F574C]",
+  default:
+    "border-[var(--bf-border-subtle)] bg-[var(--bf-layer-02)] text-[var(--bf-text-secondary)]",
+  approved:
+    "border-[var(--bf-support-success-border)] bg-[var(--bf-support-success-bg)] text-[var(--bf-support-success-fg)]",
+  review:
+    "border-[var(--bf-support-warning-border)] bg-[var(--bf-support-warning-bg)] text-[var(--bf-support-warning-fg)]",
+  missing:
+    "border-[var(--bf-support-error-border)] bg-[var(--bf-support-error-bg)] text-[var(--bf-support-error-fg)]",
+  processing:
+    "border-[var(--bf-support-info-border)] bg-[var(--bf-support-info-bg)] text-[var(--bf-support-info-fg)]",
+  rejected:
+    "border-[var(--bf-border-strong)] bg-[var(--bf-layer-02)] text-[var(--bf-text-secondary)]",
+  exported:
+    "border-[var(--bf-status-exported-border)] bg-[var(--bf-status-exported-bg)] text-[var(--bf-status-exported-fg)]",
+};
+
+const priorityToneClass: Record<StatusTone, string> = {
+  default: "border-[var(--bf-border-subtle)] bg-[var(--bf-layer-02)]",
+  approved:
+    "border-[var(--bf-support-success-border)] bg-[var(--bf-support-success-bg)]",
+  review:
+    "border-[var(--bf-support-warning-border)] bg-[var(--bf-support-warning-bg)]",
+  missing:
+    "border-[var(--bf-support-error-border)] bg-[var(--bf-support-error-bg)]",
+  processing:
+    "border-[var(--bf-support-info-border)] bg-[var(--bf-support-info-bg)]",
+  rejected: "border-[var(--bf-border-strong)] bg-[var(--bf-layer-02)]",
+  exported:
+    "border-[var(--bf-status-exported-border)] bg-[var(--bf-status-exported-bg)]",
+};
+
+const progressToneClass: Record<
+  Extract<StatusTone, "approved" | "review" | "processing" | "missing">,
+  string
+> = {
+  approved: "bg-[var(--bf-support-success)]",
+  review: "bg-[var(--bf-support-warning)]",
+  processing: "bg-[var(--bf-support-info)]",
+  missing: "bg-[var(--bf-support-error)]",
 };
 
 export function BrandLink({ className }: { className?: string }) {
@@ -27,16 +51,16 @@ export function BrandLink({ className }: { className?: string }) {
     <Link
       href="/projects"
       className={cn(
-        "inline-flex items-center gap-2 text-sm font-bold tracking-tight text-[#161B1F]",
+        "inline-flex items-center gap-2 text-sm font-bold text-[var(--bf-text-primary)]",
         className,
       )}
     >
-      <span className="grid size-8 place-items-center rounded-lg bg-[#126B5D] text-xs font-bold text-white shadow-sm">
+      <span className="grid size-8 place-items-center rounded-lg bg-[var(--bf-primary)] text-xs font-bold text-white shadow-sm">
         BF
       </span>
       <span>
         <b>Budget</b>
-        <span className="text-[#126B5D]">Flow</span>
+        <span className="text-[var(--bf-primary)]">Flow</span>
       </span>
     </Link>
   );
@@ -75,7 +99,7 @@ export function Panel({
   return (
     <section
       className={cn(
-        "rounded-xl border border-[#E1E6EA] bg-white shadow-sm",
+        "rounded-lg border border-[var(--bf-border-subtle)] bg-[var(--bf-layer-01)] shadow-sm",
         className,
       )}
       {...props}
@@ -99,14 +123,14 @@ export function PageHeader({
   return (
     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div className="min-w-0 w-full max-w-xs sm:max-w-3xl">
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#9AA6AF]">
+        <p className="text-xs font-bold uppercase text-[var(--bf-text-muted)]">
           {eyebrow}
         </p>
-        <h1 className="mt-2 break-keep text-2xl font-bold tracking-tight text-[#161B1F] sm:text-3xl">
+        <h1 className="mt-2 break-keep text-2xl font-bold text-[var(--bf-text-primary)] sm:text-3xl">
           {title}
         </h1>
         {lead ? (
-          <p className="mt-2 break-all text-sm leading-6 text-[#4D575F] sm:text-[0.95rem]">
+          <p className="mt-2 break-all text-sm leading-6 text-[var(--bf-text-secondary)] sm:text-[0.95rem]">
             {lead}
           </p>
         ) : null}
@@ -131,7 +155,7 @@ export function PriorityStrip({
   return (
     <section
       className={cn(
-        "grid gap-3 rounded-xl border border-[#E1E6EA] bg-white p-3 shadow-sm md:grid-cols-3",
+        "grid gap-3 rounded-lg border border-[var(--bf-border-subtle)] bg-[var(--bf-layer-01)] p-3 shadow-sm md:grid-cols-3",
         className,
       )}
       {...props}
@@ -154,20 +178,17 @@ export function PriorityStep({
   title: string;
   tone: StatusTone;
 }) {
-  const bgClass =
-    tone === "missing"
-      ? "border-[#F8DEDB] bg-[#FBE9E7]/60"
-      : tone === "review"
-        ? "border-[#EFC877] bg-[#FBF0DC]/60"
-        : "border-[#E1E6EA] bg-[#F7F9FA]";
-
   return (
-    <article className={cn("rounded-lg border p-3", bgClass, className)}>
+    <article
+      className={cn("rounded-lg border p-3", priorityToneClass[tone], className)}
+    >
       <StatusBadge tone={tone}>{status}</StatusBadge>
-      <strong className="mt-2 block text-sm font-bold text-[#161B1F]">
+      <strong className="mt-2 block text-sm font-bold text-[var(--bf-text-primary)]">
         {title}
       </strong>
-      <p className="mt-1 text-sm leading-6 text-[#4D575F]">{children}</p>
+      <p className="mt-1 text-sm leading-6 text-[var(--bf-text-secondary)]">
+        {children}
+      </p>
     </article>
   );
 }
@@ -188,26 +209,114 @@ export function SectionToolbar({
 }
 
 export function ProgressBar({
+  label = "진행률",
   tone = "approved",
   value,
 }: {
+  label?: string;
   tone?: Extract<StatusTone, "approved" | "review" | "processing" | "missing">;
   value: number;
 }) {
   const width = Math.min(100, Math.max(0, value));
-  const toneClass = {
-    approved: "bg-[#1E9E62]",
-    review: "bg-[#C9821A]",
-    processing: "bg-[#2D6FB3]",
-    missing: "bg-[#C8443B]",
-  }[tone];
 
   return (
-    <div className="h-2 overflow-hidden rounded-full bg-[#EFF2F4]">
+    <div
+      aria-label={label}
+      aria-valuemax={100}
+      aria-valuemin={0}
+      aria-valuenow={Math.round(width)}
+      className="h-2 overflow-hidden rounded-full bg-[var(--bf-layer-hover)]"
+      role="meter"
+    >
       <div
-        className={cn("h-full rounded-full", toneClass)}
+        className={cn("h-full rounded-full", progressToneClass[tone])}
         style={{ width: `${width}%` }}
       />
+    </div>
+  );
+}
+
+export function SegmentedControl<TValue extends string>({
+  ariaLabel,
+  className,
+  onChange,
+  options,
+  value,
+}: {
+  ariaLabel: string;
+  className?: string;
+  onChange: (value: TValue) => void;
+  options: Array<{ count?: number; label: string; value: TValue }>;
+  value: TValue;
+}) {
+  return (
+    <div
+      aria-label={ariaLabel}
+      className={cn("flex flex-wrap gap-2", className)}
+      role="group"
+    >
+      {options.map((option) => {
+        const isSelected = value === option.value;
+
+        return (
+          <button
+            aria-pressed={isSelected}
+            className={cn(
+              "h-9 rounded-lg border px-3 text-sm font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50",
+              isSelected
+                ? "border-[var(--bf-text-primary)] bg-[var(--bf-text-primary)] text-white shadow-sm"
+                : "border-[var(--bf-border-subtle)] bg-[var(--bf-layer-01)] text-[var(--bf-text-secondary)] hover:bg-[var(--bf-layer-hover)] hover:text-[var(--bf-text-primary)]",
+            )}
+            key={option.value}
+            onClick={() => onChange(option.value)}
+            type="button"
+          >
+            {option.label}
+            {option.count !== undefined ? (
+              <span
+                className={cn(
+                  "ml-2 rounded px-1.5 py-0.5 text-[0.68rem]",
+                  isSelected
+                    ? "bg-white/20 text-white"
+                    : "bg-[var(--bf-layer-hover)] text-[var(--bf-text-secondary)]",
+                )}
+              >
+                {option.count}
+              </span>
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export function Callout({
+  action,
+  children,
+  className,
+  title,
+  tone = "default",
+}: {
+  action?: ReactNode;
+  children: ReactNode;
+  className?: string;
+  title: string;
+  tone?: StatusTone;
+}) {
+  return (
+    <div className={cn("rounded-lg border p-3", priorityToneClass[tone], className)}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <strong className="text-sm font-bold text-[var(--bf-text-primary)]">
+            {title}
+          </strong>
+          <p className="mt-1 text-sm leading-6 text-[var(--bf-text-secondary)]">
+            {children}
+          </p>
+        </div>
+        {action ? <div className="shrink-0">{action}</div> : null}
+      </div>
     </div>
   );
 }

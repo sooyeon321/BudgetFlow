@@ -41,16 +41,18 @@ const variantConfig: Record<
   approve: {
     title: "지출을 승인할까요?",
     description: ({ name }) =>
-      `"${name}"을 승인합니다. 승인 후 엑셀 생성 대상에 포함됩니다.`,
+      `"${name}"을 승인하고 엑셀 생성 대상에 포함합니다.`,
     confirmLabel: "승인",
-    confirmClass: "bg-emerald-600 hover:bg-emerald-700 text-white",
+    confirmClass:
+      "bg-[var(--bf-support-success)] text-white hover:bg-[var(--bf-support-success-fg)]",
   },
   reject: {
     title: "지출을 반려할까요?",
     description: ({ name }) =>
-      `"${name}" 반려 사유를 입력하세요. 사유는 Slack으로 전달됩니다.`,
+      `"${name}"을 엑셀 생성 대상에서 제외합니다. 필요하면 반려 사유를 남기세요.`,
     confirmLabel: "반려",
-    confirmClass: "bg-red-600 hover:bg-red-700 text-white",
+    confirmClass:
+      "bg-[var(--bf-support-error)] text-white hover:bg-[var(--bf-support-error-fg)]",
   },
   close: {
     title: "정산을 마감할까요?",

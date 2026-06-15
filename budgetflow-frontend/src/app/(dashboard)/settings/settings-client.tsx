@@ -147,9 +147,10 @@ export function SettingsClient() {
               aria-selected={activeTab === tab.id}
               className={
                 activeTab === tab.id
-                  ? "h-10 rounded-lg bg-zinc-950 px-3 text-sm font-semibold text-white shadow-sm"
-                  : "h-10 rounded-lg px-3 text-sm font-semibold text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950"
+                  ? "h-10 rounded-lg bg-[var(--bf-text-primary)] px-3 text-sm font-semibold text-white shadow-sm focus-visible:ring-3 focus-visible:ring-ring/50"
+                  : "h-10 rounded-lg px-3 text-sm font-semibold text-[var(--bf-text-secondary)] hover:bg-[var(--bf-layer-hover)] hover:text-[var(--bf-text-primary)] focus-visible:ring-3 focus-visible:ring-ring/50"
               }
+              id={`settings-tab-${tab.id}`}
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               role="tab"
@@ -483,8 +484,13 @@ function TemplateUploadPanel({ project }: { project: Project | null }) {
               className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm"
               key={`${mapping.sourceColumn}-${mapping.targetField}`}
             >
-              <span>
-                {mapping.sourceColumn} → {templateFieldLabel[mapping.targetField]}
+              <span className="min-w-0">
+                <span className="block truncate">
+                  {mapping.sourceColumn} → {templateFieldLabel[mapping.targetField]}
+                </span>
+                <span className="mt-1 block text-xs text-[var(--bf-text-secondary)]">
+                  추천 신뢰도 {Math.round(mapping.confidence * 100)}%
+                </span>
               </span>
               <StatusBadge tone={mapping.confirmed ? "approved" : "processing"}>
                 {mapping.confirmed ? "확정됨" : "추천됨"}

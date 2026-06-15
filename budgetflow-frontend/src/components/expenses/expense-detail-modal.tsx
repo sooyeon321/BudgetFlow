@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Check, CircleX, Loader2 } from "lucide-react";
+import { AlertTriangle, Check, CircleX } from "lucide-react";
 import { useForm } from "react-hook-form";
 
 import { StatusBadge } from "@/components/budgetflow-ui";
@@ -17,12 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DEMO_PROJECT_ID } from "@/lib/config/demo";
-import type {
-  BudgetCategory,
-  EvidenceStatus,
-  Expense,
-  ExpenseStatus,
-} from "@/lib/domain";
+import type { BudgetCategory, Expense } from "@/lib/domain";
 import {
   expenseReviewSchema,
   type ExpenseReviewInput,
@@ -34,32 +29,7 @@ import {
   useRejectExpense,
 } from "@/lib/hooks/use-budgetflow";
 import { evidenceStatusLabel, expenseStatusLabel } from "@/lib/status";
-
-type StatusTone =
-  | "default"
-  | "approved"
-  | "review"
-  | "missing"
-  | "processing"
-  | "rejected"
-  | "exported";
-
-const statusToneByExpenseStatus: Record<ExpenseStatus, StatusTone> = {
-  approved: "approved",
-  created: "default",
-  exported: "exported",
-  needs_review: "review",
-  processing: "processing",
-  rejected: "rejected",
-};
-
-const evidenceToneByStatus: Record<EvidenceStatus, StatusTone> = {
-  none: "missing",
-  ocr_completed: "processing",
-  ocr_failed: "missing",
-  uploaded: "default",
-  verified: "approved",
-};
+import { evidenceStatusTone, expenseStatusTone } from "@/lib/status-tone";
 
 interface ExpenseDetailModalProps {
   expense: Expense | null;
@@ -127,43 +97,45 @@ export function ExpenseDetailModal({
             <>
               <DialogHeader>
                 <div className="flex items-center gap-3">
-                  <StatusBadge tone={statusToneByExpenseStatus[expense.status]}>
+                  <StatusBadge tone={expenseStatusTone[expense.status]}>
                     {expenseStatusLabel[expense.status]}
                   </StatusBadge>
-                  <span className="text-sm text-zinc-500">
+                  <span className="text-sm text-[var(--bf-text-muted)]">
                     {formatDate(expense.date)}
                   </span>
                 </div>
                 <DialogTitle className="mt-1">{expense.merchant}</DialogTitle>
-                <p className="text-sm text-zinc-600">{expense.description}</p>
+                <p className="text-sm text-[var(--bf-text-secondary)]">
+                  {expense.description}
+                </p>
               </DialogHeader>
 
               <div className="space-y-4">
                 {expense.reviewReason && (
-                  <div className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+                  <div className="flex items-center gap-2 rounded-lg bg-[var(--bf-support-warning-bg)] px-3 py-2 text-sm font-medium text-[var(--bf-support-warning-fg)]">
                     <AlertTriangle className="size-4 shrink-0" />
                     {expense.reviewReason}
                   </div>
                 )}
 
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm">
+                <div className="rounded-lg border border-[var(--bf-border-subtle)] bg-[var(--bf-layer-02)] p-4 text-sm">
                   <div className="flex justify-between gap-3">
-                    <span className="text-zinc-600">AI 신뢰도</span>
+                    <span className="text-[var(--bf-text-secondary)]">
+                      AI 신뢰도
+                    </span>
                     <span className="font-bold">
                       {Math.round(expense.aiConfidence * 100)}%
                     </span>
                   </div>
                   <div className="mt-2 flex justify-between gap-3">
-                    <span className="text-zinc-600">금액</span>
+                    <span className="text-[var(--bf-text-secondary)]">금액</span>
                     <span className="font-bold tabular-nums">
                       {formatCurrency(expense.amount)}
                     </span>
                   </div>
                   <div className="mt-2 flex justify-between gap-3">
-                    <span className="text-zinc-600">증빙</span>
-                    <StatusBadge
-                      tone={evidenceToneByStatus[expense.evidenceStatus]}
-                    >
+                    <span className="text-[var(--bf-text-secondary)]">증빙</span>
+                    <StatusBadge tone={evidenceStatusTone[expense.evidenceStatus]}>
                       {evidenceStatusLabel[expense.evidenceStatus]}
                     </StatusBadge>
                   </div>
