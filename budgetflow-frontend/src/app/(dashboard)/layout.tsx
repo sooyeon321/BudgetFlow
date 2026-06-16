@@ -1,4 +1,5 @@
 import { PageTransition } from "@/components/page-transition";
+import { OnboardingTour } from "@/components/onboarding-tour";
 
 import { AppSidebar } from "./app-sidebar";
 import { DashboardNav } from "./dashboard-nav";
@@ -26,6 +27,9 @@ export default function DashboardLayout({
       <div className="fixed bottom-0 left-0 right-0 z-40 shrink-0 border-t border-[var(--bf-border-subtle)] bg-[var(--bf-layer-01)] px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(22,27,31,0.08)] md:hidden">
         <DashboardNav placement="mobile" />
       </div>
+
+      {/* 온보딩 투어 */}
+      <OnboardingTour />
     </div>
   );
 }
