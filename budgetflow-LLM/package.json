@@ -6,7 +6,9 @@
     "test:bedrock": "tsx src/test-bedrock.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.2",
     "@aws-sdk/client-bedrock-runtime": "^3.600.0",
+    "@aws-sdk/client-s3": "^3.1069.0",
     "@aws-sdk/client-textract": "^3.1055.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
