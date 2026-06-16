@@ -227,7 +227,7 @@ export function ExpensesClient() {
 
         <section className="grid min-w-0 gap-4">
           <div className="min-w-0 space-y-4">
-            <Panel>
+            <Panel data-tour="expense-list">
               <div className="space-y-3 border-b border-zinc-200 p-4">
                 <SectionToolbar
                   actions={
@@ -472,7 +472,7 @@ function ExportControls({
   project: Project | null;
 }) {
   return (
-    <Panel className="bf-panel-pad">
+    <Panel className="bf-panel-pad" data-tour="export-controls">
       <SectionToolbar
         actions={
           <>
