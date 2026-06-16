@@ -59,7 +59,9 @@ export function ProjectsClient() {
 
   const stats = useMemo(() => {
     const projects = projectsQuery.data ?? [];
-    const activeProjects = projects.filter((project) => project.status === "active");
+    const activeProjects = projects.filter(
+      (project) => project.status === "active",
+    );
     const confirmedTemplates = projects.filter(
       (project) => project.templateMappingStatus === "confirmed",
     );
@@ -97,15 +99,27 @@ export function ProjectsClient() {
       />
 
       <PriorityStrip aria-label="오늘 먼저 볼 프로젝트">
-        <PriorityStep status="우선 처리" title="증빙 누락 지출 확인" tone="review">
+        <PriorityStep
+          status="우선 처리"
+          title="증빙 누락 지출 확인"
+          tone="review"
+        >
           {summaryQuery.data?.missingEvidenceCount ?? 0}건의 증빙 없음 항목은
           엑셀 생성 전 보완 요청 또는 반려를 먼저 결정합니다.
         </PriorityStep>
-        <PriorityStep status="대기" title="검토 필요 항목 정리" tone="processing">
-          {summaryQuery.data?.needsReviewCount ?? 0}건의 낮은 신뢰도 또는 예산 초과
-          가능 항목을 검토 패널에서 확인합니다.
+        <PriorityStep
+          status="대기"
+          title="검토 필요 항목 정리"
+          tone="processing"
+        >
+          {summaryQuery.data?.needsReviewCount ?? 0}건의 낮은 신뢰도 또는 예산
+          초과 가능 항목을 검토 패널에서 확인합니다.
         </PriorityStep>
-        <PriorityStep status="안정" title="양식 확정 프로젝트 유지" tone="approved">
+        <PriorityStep
+          status="안정"
+          title="양식 확정 프로젝트 유지"
+          tone="approved"
+        >
           매핑 확정 프로젝트는 승인 항목만 모아 제출용 엑셀 파일을 생성할 수
           있습니다.
         </PriorityStep>
@@ -155,7 +169,10 @@ export function ProjectsClient() {
               label="프로젝트명"
               error={form.formState.errors.name?.message}
             >
-              <TextInput placeholder="예: 여름 MT 정산" {...form.register("name")} />
+              <TextInput
+                placeholder="예: 여름 MT 정산"
+                {...form.register("name")}
+              />
             </FormField>
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField
@@ -210,22 +227,39 @@ export function ProjectsClient() {
           <h2 className="text-lg font-bold text-zinc-950">운영 체크</h2>
           <div className="mt-5 space-y-5">
             {(projectsQuery.data ?? []).slice(0, 3).map((project) => {
-              const usage = project.status === "closed" ? 100 : project.totalBudget > 1_000_000 ? 68 : 42;
+              const usage =
+                project.status === "closed"
+                  ? 100
+                  : project.totalBudget > 1_000_000
+                    ? 68
+                    : 42;
               return (
                 <div className="space-y-2" key={project.id}>
                   <div className="flex items-center justify-between gap-3 text-sm">
-                    <strong className="truncate text-zinc-950">{project.name}</strong>
-                    <span className="bf-money">{formatCurrency(project.totalBudget)}</span>
+                    <strong className="truncate text-zinc-950">
+                      {project.name}
+                    </strong>
+                    <span className="bf-money">
+                      {formatCurrency(project.totalBudget)}
+                    </span>
                   </div>
                   <ProgressBar
-                    tone={project.status === "closed" ? "approved" : usage > 75 ? "review" : "processing"}
+                    tone={
+                      project.status === "closed"
+                        ? "approved"
+                        : usage > 75
+                          ? "review"
+                          : "processing"
+                    }
                     value={usage}
                   />
                 </div>
               );
             })}
             {projectsQuery.isLoading ? (
-              <p className="bf-helper">프로젝트 운영 상태를 불러오는 중입니다.</p>
+              <p className="bf-helper">
+                프로젝트 운영 상태를 불러오는 중입니다.
+              </p>
             ) : null}
           </div>
         </Panel>
@@ -243,9 +277,14 @@ export function ProjectsClient() {
           <h2 className="text-lg font-bold text-zinc-950">프로젝트 목록</h2>
         </SectionToolbar>
 
-        <div className="mt-4 divide-y divide-zinc-100">
+        <div
+          className="mt-4 divide-y divide-zinc-100"
+          data-tour="projects-list"
+        >
           {projectsQuery.isLoading ? (
-            <p className="py-5 text-sm text-zinc-600">프로젝트를 불러오는 중입니다.</p>
+            <p className="py-5 text-sm text-zinc-600">
+              프로젝트를 불러오는 중입니다.
+            </p>
           ) : null}
 
           <div className="hidden grid-cols-[minmax(0,1fr)_180px_120px_120px_96px] gap-3 bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-500 md:grid">
@@ -267,7 +306,12 @@ export function ProjectsClient() {
 
 function ProjectRow({ project }: { project: Project }) {
   const isConfirmed = project.templateMappingStatus === "confirmed";
-  const usage = project.status === "closed" ? 100 : project.totalBudget > 1_000_000 ? 68 : 42;
+  const usage =
+    project.status === "closed"
+      ? 100
+      : project.totalBudget > 1_000_000
+        ? 68
+        : 42;
 
   return (
     <article className="grid gap-3 px-3 py-4 transition-colors hover:bg-zinc-50 md:grid-cols-[minmax(0,1fr)_180px_120px_120px_96px] md:items-center">
@@ -286,10 +330,18 @@ function ProjectRow({ project }: { project: Project }) {
       <div className="space-y-1.5">
         <div className="flex justify-between gap-2 text-xs">
           <span className="text-zinc-500">예산</span>
-          <span className="bf-money">{formatCurrency(project.totalBudget)}</span>
+          <span className="bf-money">
+            {formatCurrency(project.totalBudget)}
+          </span>
         </div>
         <ProgressBar
-          tone={project.status === "closed" ? "approved" : usage > 75 ? "review" : "processing"}
+          tone={
+            project.status === "closed"
+              ? "approved"
+              : usage > 75
+                ? "review"
+                : "processing"
+          }
           value={usage}
         />
       </div>
@@ -300,7 +352,11 @@ function ProjectRow({ project }: { project: Project }) {
       <StatusBadge tone={project.status === "active" ? "approved" : "rejected"}>
         {project.status === "active" ? "진행 중" : "마감"}
       </StatusBadge>
-      <Button asChild size="sm" variant={project.status === "active" ? "default" : "outline"}>
+      <Button
+        asChild
+        size="sm"
+        variant={project.status === "active" ? "default" : "outline"}
+      >
         <Link href={isConfirmed ? "/expenses" : "/settings"}>
           {isConfirmed ? (
             <CircleCheck data-icon="inline-start" />
