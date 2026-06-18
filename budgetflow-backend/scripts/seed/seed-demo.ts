@@ -130,6 +130,27 @@ const MERCHANTS_KO = [
 
 const CLOSED_MERCHANTS = ["세미나 도시락", "편의점GS", "인쇄소"];
 
+const MERCHANT_MENUS: Record<string, string> = {
+  "스타벅스 인하점": "아메리카노, 카페라떼",
+  "GS25 용현동점": "삼각김밥, 컵라면",
+  "맘스터치 인하대점": "싸이버거, 허니버터치킨",
+  도시락팩토리: "제육볶음 도시락, 불고기 도시락",
+  "다이소 인하대점": "문구류, 소모품",
+  "파리바게뜨 용현점": "아메리카노, 크루아상",
+  "교보문구 인천점": "볼펜, 노트",
+  "CU 제물포점": "삼각김밥, 음료",
+  "롯데마트 인천점": "식재료, 생활용품",
+  "이마트24 용현점": "샌드위치, 음료",
+  "배달의민족 주문": "치킨, 피자",
+  "카페베네 인하점": "아메리카노, 카페모카",
+  BBQ치킨: "황금올리브치킨, 양념치킨",
+  "피자헛 인천점": "페퍼로니피자, 슈프림피자",
+  "할리스커피 인하점": "아메리카노, 헤이즐넛라떼",
+  "세미나 도시락": "불고기 도시락, 김치찌개 도시락",
+  편의점GS: "삼각김밥, 음료",
+  인쇄소: "흑백 인쇄, 컬러 인쇄",
+};
+
 // ─── Phase 0: LLM 헬스체크 ────────────────────────────────────────────────
 
 async function checkLlmHealth(): Promise<boolean> {
@@ -186,6 +207,12 @@ async function seedProjectsAndCategories(client: any) {
 // ─── Phase 3: Faker 지출 20건 ─────────────────────────────────────────────
 
 async function seedFakerExpenses(client: any) {
+  // 재실행 시 중복 방지: 기존 faker 지출 삭제
+  const projectIds = DEMO_PROJECTS.map((p) => p.id);
+  await client.query(`DELETE FROM expenses WHERE project_id = ANY($1)`, [
+    projectIds,
+  ]);
+
   const activeCategories = DEMO_CATEGORIES.filter(
     (c) => c.project_id === "project-aingthon",
   );
@@ -261,7 +288,7 @@ async function seedFakerExpenses(client: any) {
         date,
         amount,
         merchant,
-        `${merchant} 이용`,
+        MERCHANT_MENUS[merchant] ?? `${merchant} 이용`,
         payerName,
         slackUserId,
         status,
