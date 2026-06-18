@@ -69,16 +69,27 @@ router.patch('/:expenseId/reject', authenticateJWT, asyncHandler(async (req: Aut
 
 // 5. 봇 → 백엔드 지출 등록 (인증 없음)
 router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { slackUserId, channelId, type, text, imageUrl, projectId, submittedBy, categories } = req.body;
+  const { slackUserId, channelId, type, text, imageUrl, projectId, submittedBy } = req.body;
   if (!slackUserId || !channelId || !type) {
     return res.status(400).json({ error: '필수 필드가 누락되었습니다.' });
   }
   const today = new Date().toISOString().split('T')[0];
 
+  // projectId 기준으로 카테고리 자동 조회 (봇이 categories를 보내지 않아도 LLM이 분류 가능하도록)
+  const catResult = await pool.query(
+    `SELECT id, name, keywords FROM budget_categories WHERE project_id = $1`,
+    [projectId]
+  );
+  const categories = catResult.rows.map((r: any) => ({
+    id: r.id,
+    name: r.name,
+    keywords: r.keywords ?? [],
+  }));
+
   if (type === 'text') {
     const llmResult = await aiOcrService.analyzeText({
       text, projectId, requestDate: today,
-      timezone: 'Asia/Seoul', submittedBy, categories: categories ?? [],
+      timezone: 'Asia/Seoul', submittedBy, categories,
     });
     if (llmResult.action === 'request_re_input') {
       return res.status(200).json({ action: 'request_re_input', userId: slackUserId });
@@ -111,7 +122,7 @@ router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   if (type === 'image' || type === 'text_image') {
     const llmResult = await aiOcrService.analyzeImage({
       s3Key: imageUrl, projectId, evidenceFileId: imageUrl,
-      submittedBy, categories: categories ?? [],
+      submittedBy, categories,
     });
     if (llmResult.amount === null) {
       return res.status(200).json({ action: 'request_re_input', userId: slackUserId });
