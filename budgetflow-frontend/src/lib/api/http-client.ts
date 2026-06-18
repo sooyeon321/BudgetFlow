@@ -84,8 +84,11 @@ export async function downloadFile(
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+  // 브라우저가 blob URL을 처리한 뒤 해제 (즉시 해제 시 다운로드 실패)
+  setTimeout(() => URL.revokeObjectURL(url), 100);
 }
 
 export const http = {
