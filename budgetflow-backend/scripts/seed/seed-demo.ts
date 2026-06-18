@@ -30,8 +30,8 @@ const S3_BUCKET = process.env.S3_BUCKET_NAME!;
 
 const DEMO_PROJECTS = [
   {
-    id: "project-demo-active",
-    organization_id: "org-gdgoc",
+    id: "project-aingthon",
+    organization_id: "org_inha_cs_2026",
     name: "2026 여름 해커톤",
     total_budget: 2000000,
     status: "active",
@@ -44,7 +44,7 @@ const DEMO_PROJECTS = [
   },
   {
     id: "project-demo-closed",
-    organization_id: "org-gdgoc",
+    organization_id: "org_inha_cs_2026",
     name: "상반기 세미나 정산",
     total_budget: 500000,
     status: "closed",
@@ -60,28 +60,28 @@ const DEMO_PROJECTS = [
 const DEMO_CATEGORIES = [
   {
     id: "dcat-food",
-    project_id: "project-demo-active",
+    project_id: "project-aingthon",
     name: "식비",
     budget_limit: 800000,
     keywords: ["식사", "점심", "저녁", "뒷풀이", "밥"],
   },
   {
     id: "dcat-snack",
-    project_id: "project-demo-active",
+    project_id: "project-aingthon",
     name: "다과비",
     budget_limit: 300000,
     keywords: ["다과", "간식", "커피", "음료", "카페"],
   },
   {
     id: "dcat-venue",
-    project_id: "project-demo-active",
+    project_id: "project-aingthon",
     name: "장소비",
     budget_limit: 600000,
     keywords: ["대여", "장소", "회의실", "홀", "강의실"],
   },
   {
     id: "dcat-etc",
-    project_id: "project-demo-active",
+    project_id: "project-aingthon",
     name: "기타",
     budget_limit: 300000,
     keywords: ["기타", "소모품", "인쇄", "문구"],
@@ -187,13 +187,13 @@ async function seedProjectsAndCategories(client: any) {
 
 async function seedFakerExpenses(client: any) {
   const activeCategories = DEMO_CATEGORIES.filter(
-    (c) => c.project_id === "project-demo-active",
+    (c) => c.project_id === "project-aingthon",
   );
 
   for (let i = 0; i < 20; i++) {
     const status = STATUS_DISTRIBUTION[i];
     const isActive = i < 17; // 17건은 active, 3건은 closed
-    const projectId = isActive ? "project-demo-active" : "project-demo-closed";
+    const projectId = isActive ? "project-aingthon" : "project-demo-closed";
     const categories = isActive
       ? activeCategories
       : DEMO_CATEGORIES.filter((c) => c.project_id === "project-demo-closed");
@@ -298,7 +298,7 @@ async function seedOcrExpenses() {
   }
 
   const activeCategories = DEMO_CATEGORIES.filter(
-    (c) => c.project_id === "project-demo-active",
+    (c) => c.project_id === "project-aingthon",
   ).map((c) => ({
     id: c.id,
     name: c.name,
@@ -339,7 +339,7 @@ async function seedOcrExpenses() {
         {
           inputType: "image",
           s3Key,
-          projectId: "project-demo-active",
+          projectId: "project-aingthon",
           evidenceFileId,
           submittedBy: {
             userId: `U-CORD-${idx}`,
@@ -364,7 +364,7 @@ async function seedOcrExpenses() {
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'slack',$9,$10,$11,$12,$13,$14,$15)`,
           [
             expenseId,
-            "project-demo-active",
+            "project-aingthon",
             llm.categoryId ?? null,
             llm.date ?? today,
             llm.amount ?? 0,
@@ -388,7 +388,7 @@ async function seedOcrExpenses() {
            VALUES ($1,$2,$3,$4,'image',$5,$6)`,
           [
             evidenceFileId,
-            "project-demo-active",
+            "project-aingthon",
             expenseId,
             `cord_${idx}.jpg`,
             `https://${S3_BUCKET}.s3.ap-northeast-2.amazonaws.com/${s3Key}`,
