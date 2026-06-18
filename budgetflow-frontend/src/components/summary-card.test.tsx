@@ -11,7 +11,7 @@ describe("SummaryCard", () => {
 
     expect(html).toContain("전체 지출");
     expect(html).toContain("10건");
-    expect(html).toContain("border-zinc-200");
+    expect(html).toContain("border-[var(--bf-border-subtle)]");
   });
 
   it("applies semantic tone classes", () => {
@@ -19,16 +19,16 @@ describe("SummaryCard", () => {
       renderToStaticMarkup(
         <SummaryCard label="승인 금액" value="₩1" tone="success" />,
       ),
-    ).toContain("border-emerald-200");
+    ).toContain("border-[var(--bf-support-success)]");
     expect(
       renderToStaticMarkup(
         <SummaryCard label="검토 필요" value="1건" tone="warning" />,
       ),
-    ).toContain("border-amber-200");
+    ).toContain("border-[var(--bf-support-warning)]");
     expect(
       renderToStaticMarkup(
         <SummaryCard label="증빙 누락" value="1건" tone="danger" />,
       ),
-    ).toContain("border-red-200");
+    ).toContain("border-[var(--bf-support-error)]");
   });
 });

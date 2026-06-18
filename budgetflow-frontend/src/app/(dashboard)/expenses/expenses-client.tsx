@@ -12,11 +12,13 @@ import {
 } from "lucide-react";
 
 import {
+  Callout,
   PageHeader,
   Panel,
   PriorityStep,
   PriorityStrip,
   SectionToolbar,
+  SegmentedControl,
   StatusBadge,
 } from "@/components/budgetflow-ui";
 import { AnimatedExpenseList } from "@/components/expenses/animated-expense-list";
@@ -26,13 +28,7 @@ import { TextInput } from "@/components/form-controls";
 import { SummaryCard } from "@/components/summary-card";
 import { Button } from "@/components/ui/button";
 import { DEMO_PROJECT_ID } from "@/lib/config/demo";
-import type {
-  EvidenceStatus,
-  Expense,
-  ExpenseStatus,
-  ExportJob,
-  Project,
-} from "@/lib/domain";
+import type { Expense, ExpenseStatus, ExportJob, Project } from "@/lib/domain";
 import {
   formatCurrency,
   formatDate,
@@ -52,39 +48,14 @@ import {
   expenseStatusFilterOptions,
   expenseStatusLabel,
 } from "@/lib/status";
-
-type StatusTone =
-  | "default"
-  | "approved"
-  | "review"
-  | "missing"
-  | "processing"
-  | "rejected"
-  | "exported";
-
-const statusToneByExpenseStatus: Record<ExpenseStatus, StatusTone> = {
-  approved: "approved",
-  created: "default",
-  exported: "exported",
-  needs_review: "review",
-  processing: "processing",
-  rejected: "rejected",
-};
-
-const evidenceToneByStatus: Record<EvidenceStatus, StatusTone> = {
-  none: "missing",
-  ocr_completed: "processing",
-  ocr_failed: "missing",
-  uploaded: "default",
-  verified: "approved",
-};
+import { evidenceStatusTone, expenseStatusTone } from "@/lib/status-tone";
 
 export function ExpensesClient() {
   const [status, setStatus] = useState<ExpenseStatus | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedExpenseId, setSelectedExpenseId] = useState<
     string | null | undefined
-  >(undefined);
+  >(null);
   const [confirmVariant, setConfirmVariant] = useState<
     "close" | "export" | null
   >(null);
@@ -256,7 +227,7 @@ export function ExpensesClient() {
 
         <section className="grid min-w-0 gap-4">
           <div className="min-w-0 space-y-4">
-            <Panel>
+            <Panel data-tour="expense-list">
               <div className="space-y-3 border-b border-zinc-200 p-4">
                 <SectionToolbar
                   actions={
@@ -272,35 +243,15 @@ export function ExpensesClient() {
                     </label>
                   }
                 >
-                  <div
-                    className="flex flex-wrap gap-2"
-                    aria-label="지출 상태 필터"
-                  >
-                    {expenseStatusFilterOptions.map((option) => (
-                      <button
-                        aria-pressed={status === option.value}
-                        className={
-                          status === option.value
-                            ? "h-9 rounded-lg bg-zinc-950 px-3 text-sm font-semibold text-white shadow-sm"
-                            : "h-9 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950"
-                        }
-                        key={option.value}
-                        onClick={() => setStatus(option.value)}
-                        type="button"
-                      >
-                        {option.label}
-                        <span
-                          className={
-                            status === option.value
-                              ? "ml-2 rounded bg-white/20 px-1.5 py-0.5 text-[0.68rem]"
-                              : "ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-[0.68rem] text-zinc-500"
-                          }
-                        >
-                          {filterCounts[option.value] ?? 0}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+                  <SegmentedControl
+                    ariaLabel="지출 상태 필터"
+                    onChange={setStatus}
+                    options={expenseStatusFilterOptions.map((option) => ({
+                      ...option,
+                      count: filterCounts[option.value] ?? 0,
+                    }))}
+                    value={status}
+                  />
                 </SectionToolbar>
                 <p className="text-xs font-medium text-zinc-500">
                   {visibleExpenses.length}건 표시 · 위험 항목은 먼저 선택됩니다.
@@ -440,17 +391,19 @@ function ExpenseTableRow({
 }) {
   const rowTone =
     expense.evidenceStatus === "none"
-      ? "bg-red-50/70 hover:bg-red-100/70"
+      ? "bg-[var(--bf-row-missing)] hover:bg-[var(--bf-support-error-bg)]"
       : expense.status === "needs_review"
-        ? "bg-amber-50/70 hover:bg-amber-100/70"
-        : "hover:bg-zinc-50";
+        ? "bg-[var(--bf-row-review)] hover:bg-[var(--bf-support-warning-bg)]"
+        : "hover:bg-[var(--bf-layer-hover)]";
 
   return (
     <tr
+      aria-label={`${expense.merchant} 지출 상세 보기`}
+      aria-pressed={isSelected}
       className={
         isSelected
-          ? "cursor-pointer border-b border-zinc-200 bg-zinc-950/[0.04] ring-1 ring-inset ring-zinc-900/10"
-          : `cursor-pointer border-b border-zinc-100 transition-colors ${rowTone}`
+          ? "cursor-pointer border-b border-[var(--bf-border-subtle)] bg-[var(--bf-layer-selected)] ring-1 ring-inset ring-black/10"
+          : `cursor-pointer border-b border-[var(--bf-border-subtle)] transition-colors ${rowTone}`
       }
       onClick={onSelect}
       onKeyDown={(event) => {
@@ -466,17 +419,21 @@ function ExpenseTableRow({
         {formatDate(expense.date)}
       </td>
       <td className="max-w-[300px] px-4 py-3">
-        <div className="font-semibold text-zinc-950">{expense.merchant}</div>
-        <p className="mt-1 truncate text-zinc-600">{expense.description}</p>
+        <div className="font-semibold text-[var(--bf-text-primary)]">
+          {expense.merchant}
+        </div>
+        <p className="mt-1 truncate text-[var(--bf-text-secondary)]">
+          {expense.description}
+        </p>
         {expense.reviewReason ? (
-          <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-red-700">
+          <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-[var(--bf-support-error-fg)]">
             <AlertTriangle className="size-3" />
             {expense.reviewReason}
           </p>
         ) : null}
       </td>
       <td className="px-4 py-3">
-        <StatusBadge tone={statusToneByExpenseStatus[expense.status]}>
+        <StatusBadge tone={expenseStatusTone[expense.status]}>
           {expenseStatusLabel[expense.status]}
         </StatusBadge>
       </td>
@@ -486,7 +443,7 @@ function ExpenseTableRow({
       </td>
       <td className="px-4 py-3">{expense.payerName}</td>
       <td className="px-4 py-3">
-        <StatusBadge tone={evidenceToneByStatus[expense.evidenceStatus]}>
+        <StatusBadge tone={evidenceStatusTone[expense.evidenceStatus]}>
           {expense.evidenceStatus === "none" ? (
             <FileWarning className="mr-1 size-3" />
           ) : null}
@@ -515,7 +472,7 @@ function ExportControls({
   project: Project | null;
 }) {
   return (
-    <Panel className="bf-panel-pad">
+    <Panel className="bf-panel-pad" data-tour="export-controls">
       <SectionToolbar
         actions={
           <>
@@ -552,34 +509,20 @@ function ExportControls({
       </SectionToolbar>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <strong className="text-sm font-bold text-zinc-950">
-                생성 전 경고
-              </strong>
-              <p className="mt-1 text-sm leading-6 text-amber-900">
-                검토 필요 {needsReviewCount}건은 생성 파일에서 제외됨
-              </p>
-            </div>
+        <Callout
+          action={
             <StatusBadge tone={needsReviewCount > 0 ? "review" : "approved"}>
               {needsReviewCount > 0 ? "제외 있음" : "준비 완료"}
             </StatusBadge>
-          </div>
-        </div>
-        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <strong className="text-sm font-bold text-zinc-950">
-                최근 생성 파일
-              </strong>
-              <p className="mt-1 text-sm leading-6 text-zinc-600">
-                {exportJob
-                  ? `포함 ${exportJob.includedExpenseCount}건 · 제외 ${exportJob.excludedReviewCount}건`
-                  : "아직 현재 작업에서 생성된 파일 없음"}
-              </p>
-            </div>
-            {exportJob?.downloadUrl ? (
+          }
+          title="생성 전 경고"
+          tone={needsReviewCount > 0 ? "review" : "approved"}
+        >
+          검토 필요 {needsReviewCount}건은 생성 파일에서 제외됩니다.
+        </Callout>
+        <Callout
+          action={
+            exportJob?.downloadUrl ? (
               <Button asChild size="sm" variant="outline">
                 <a
                   href={exportJob.downloadUrl}
@@ -589,9 +532,15 @@ function ExportControls({
                   다운로드
                 </a>
               </Button>
-            ) : null}
-          </div>
-        </div>
+            ) : null
+          }
+          title="최근 생성 파일"
+          tone="default"
+        >
+          {exportJob
+            ? `포함 ${exportJob.includedExpenseCount}건 · 제외 ${exportJob.excludedReviewCount}건`
+            : "아직 현재 작업에서 생성된 파일 없음"}
+        </Callout>
       </div>
     </Panel>
   );
@@ -641,27 +590,28 @@ function ExpenseMobileCard({
 }) {
   return (
     <button
+      aria-pressed={isSelected}
       className={
         isSelected
-          ? "block w-full bg-zinc-950/[0.04] p-4 text-left"
+          ? "block w-full bg-[var(--bf-layer-selected)] p-4 text-left"
           : expense.evidenceStatus === "none"
-            ? "block w-full bg-red-50/70 p-4 text-left"
+            ? "block w-full bg-[var(--bf-row-missing)] p-4 text-left"
             : expense.status === "needs_review"
-              ? "block w-full bg-amber-50/70 p-4 text-left"
-              : "block w-full bg-white p-4 text-left"
+              ? "block w-full bg-[var(--bf-row-review)] p-4 text-left"
+              : "block w-full bg-[var(--bf-layer-01)] p-4 text-left"
       }
       onClick={onSelect}
       type="button"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium text-zinc-500">
+          <p className="text-xs font-medium text-[var(--bf-text-muted)]">
             {formatDate(expense.date)}
           </p>
-          <h3 className="mt-1 truncate text-base font-bold text-zinc-950">
+          <h3 className="mt-1 truncate text-base font-bold text-[var(--bf-text-primary)]">
             {expense.merchant}
           </h3>
-          <p className="mt-1 line-clamp-2 text-sm leading-6 text-zinc-600">
+          <p className="mt-1 line-clamp-2 text-sm leading-6 text-[var(--bf-text-secondary)]">
             {expense.description}
           </p>
         </div>
@@ -670,7 +620,7 @@ function ExpenseMobileCard({
         </p>
       </div>
       {expense.reviewReason ? (
-        <div className="mt-3 inline-flex max-w-full items-center gap-1 rounded-lg bg-red-100 px-2 py-1 text-xs font-medium text-red-700">
+        <div className="mt-3 inline-flex max-w-full items-center gap-1 rounded-lg bg-[var(--bf-support-error-bg)] px-2 py-1 text-xs font-medium text-[var(--bf-support-error-fg)]">
           <AlertTriangle className="size-3 shrink-0" />
           <span className="truncate">{expense.reviewReason}</span>
         </div>
@@ -678,10 +628,10 @@ function ExpenseMobileCard({
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <StatusBadge>{categoryName}</StatusBadge>
         <StatusBadge>{expense.payerName}</StatusBadge>
-        <StatusBadge tone={statusToneByExpenseStatus[expense.status]}>
+        <StatusBadge tone={expenseStatusTone[expense.status]}>
           {expenseStatusLabel[expense.status]}
         </StatusBadge>
-        <StatusBadge tone={evidenceToneByStatus[expense.evidenceStatus]}>
+        <StatusBadge tone={evidenceStatusTone[expense.evidenceStatus]}>
           {evidenceStatusLabel[expense.evidenceStatus]}
         </StatusBadge>
       </div>

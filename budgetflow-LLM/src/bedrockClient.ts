@@ -14,7 +14,9 @@ function parseJsonResponse(raw: string): Record<string, unknown> {
   return JSON.parse(clean);
 }
 
-export async function callBedrock(prompt: string): Promise<Record<string, unknown>> {
+export async function callBedrock(
+  prompt: string,
+): Promise<Record<string, unknown>> {
   const client = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
   });
@@ -22,19 +24,19 @@ export async function callBedrock(prompt: string): Promise<Record<string, unknow
   const message = await client.messages.create({
     model: MODEL_ID,
     max_tokens: 1000,
-    messages: [
-      { role: "user", content: prompt },
-    ],
+    messages: [{ role: "user", content: prompt }],
   });
 
-  const text = (message.content[0] as { type: string; text: string }).text.trim();
+  const text = (
+    message.content[0] as { type: string; text: string }
+  ).text.trim();
   return parseJsonResponse(text);
 }
 
 export async function callBedrockVision(
   prompt: string,
   imageBase64: string,
-  mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif"
+  mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif",
 ): Promise<Record<string, unknown>> {
   const client = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
@@ -64,6 +66,8 @@ export async function callBedrockVision(
     ],
   });
 
-  const text = (message.content[0] as { type: string; text: string }).text.trim();
+  const text = (
+    message.content[0] as { type: string; text: string }
+  ).text.trim();
   return parseJsonResponse(text);
 }

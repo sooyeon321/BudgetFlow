@@ -36,7 +36,7 @@ Return exactly this JSON structure:
     "items": true or false,
     "category": true or false
   },
-  "rawText": "all readable text from the receipt, line by line, joined with \\n"
+  "rawText": "all readable text from the receipt, line by line, joined with \n"
 }
 
 Rules for each field:

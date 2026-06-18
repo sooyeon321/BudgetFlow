@@ -21,14 +21,20 @@ export interface S3ImageFailure {
 function guessMediaType(key: string): S3ImageResult["mediaType"] {
   const ext = key.split(".").pop()?.toLowerCase();
   switch (ext) {
-    case "png":  return "image/png";
-    case "webp": return "image/webp";
-    case "gif":  return "image/gif";
-    default:     return "image/jpeg";
+    case "png":
+      return "image/png";
+    case "webp":
+      return "image/webp";
+    case "gif":
+      return "image/gif";
+    default:
+      return "image/jpeg";
   }
 }
 
-export async function getImageFromS3(s3Key: string): Promise<S3ImageResult | S3ImageFailure> {
+export async function getImageFromS3(
+  s3Key: string,
+): Promise<S3ImageResult | S3ImageFailure> {
   const bucketName = process.env.S3_BUCKET_NAME ?? "2026-inha-cc-04-s3";
 
   try {

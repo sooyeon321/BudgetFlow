@@ -1,8 +1,7 @@
-import Link from "next/link";
-
-import { BrandLink, StatusBadge } from "@/components/budgetflow-ui";
 import { PageTransition } from "@/components/page-transition";
+import { OnboardingTour } from "@/components/onboarding-tour";
 
+import { AppSidebar } from "./app-sidebar";
 import { DashboardNav } from "./dashboard-nav";
 
 export default function DashboardLayout({
@@ -11,30 +10,26 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="flex min-h-dvh w-full flex-col overflow-x-hidden bg-zinc-50 max-sm:h-dvh max-sm:overflow-hidden md:block">
-      <header className="sticky top-0 z-40 shrink-0 border-b border-zinc-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex min-h-14 w-full max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
-          <BrandLink />
-          <DashboardNav />
-          <div className="hidden items-center gap-2 md:flex">
-            <StatusBadge>운영자</StatusBadge>
-            <Link
-              className="inline-flex h-9 items-center rounded-lg border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-700 shadow-sm hover:border-zinc-300 hover:bg-zinc-50"
-              href="/login"
-            >
-              로그아웃
-            </Link>
-          </div>
-        </div>
-      </header>
+    <div className="flex min-h-dvh bg-[var(--bf-background)]">
+      {/* 사이드바 — 데스크탑 전용 */}
+      <div className="hidden md:block">
+        <AppSidebar />
+      </div>
 
-      <main className="mx-auto min-w-0 w-full max-w-7xl flex-1 overflow-x-hidden overflow-y-auto px-4 pb-6 pt-6 sm:px-6 md:overflow-visible md:py-8">
-        <PageTransition>{children}</PageTransition>
+      {/* 메인 콘텐츠 */}
+      <main className="flex-1 min-w-0 overflow-x-hidden px-8 py-7 pb-20 md:pb-7 max-sm:px-4 max-sm:py-5">
+        <div className="max-w-[1080px] mx-auto">
+          <PageTransition>{children}</PageTransition>
+        </div>
       </main>
 
-      <div className="z-40 shrink-0 border-t border-zinc-200 bg-white/95 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_32px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
+      {/* 모바일 하단 내비 */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 shrink-0 border-t border-[var(--bf-border-subtle)] bg-[var(--bf-layer-01)] px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(22,27,31,0.08)] md:hidden">
         <DashboardNav placement="mobile" />
       </div>
+
+      {/* 온보딩 투어 */}
+      <OnboardingTour />
     </div>
   );
 }

@@ -1,7 +1,23 @@
-
+# Windows Zone Identifier
 *:Zone.Identifier
+
+# 로컬 설정
 .omx/
 artifacts/
 *.zip
+
+# 환경변수 (모든 위치)
 .env
+.env.local
+**/.env
+**/.env.local
+
+# Dependency directories
 node_modules/
+
+# Build outputs
+dist/
+cdk.out/
+.cdk.staging/
+*.js
+*.d.ts

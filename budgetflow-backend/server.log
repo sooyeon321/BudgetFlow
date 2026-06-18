@@ -1,0 +1,5 @@
+nohup: ignoring input
+◇ injected env (6) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+📌 Swagger UI가 http://localhost:3000/api-docs 에 등록되었습니다.
+🚀 BudgetFlow 단일 통합 서버가 포트 3001에서 정상 기동 중입니다!

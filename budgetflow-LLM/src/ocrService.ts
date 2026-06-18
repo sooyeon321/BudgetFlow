@@ -4,7 +4,10 @@
 import { getImageFromS3 } from "./s3Client";
 import { buildOcrVisionPrompt } from "./promptBuilder";
 import { callBedrockVision } from "./bedrockClient";
-import { EvidenceStatus, MissingFieldSchema } from "./BudgetFlow_LLM_Lambda_zod_schema";
+import {
+  EvidenceStatus,
+  MissingFieldSchema,
+} from "./BudgetFlow_LLM_Lambda_zod_schema";
 import type { OcrInput, OcrOutput } from "./BudgetFlow_LLM_Lambda_zod_schema";
 import { z } from "zod";
 
@@ -46,10 +49,10 @@ function calcOcrConfidence(llm: LLMOcrRaw): OcrConfidenceResult {
   const { confidence } = llm;
 
   let score =
-    (confidence.date     ? 0.2 : 0) +
+    (confidence.date ? 0.2 : 0) +
     (confidence.merchant ? 0.2 : 0) +
-    (confidence.amount   ? 0.3 : 0) +
-    (confidence.items    ? 0.2 : 0) +
+    (confidence.amount ? 0.3 : 0) +
+    (confidence.items ? 0.2 : 0) +
     (confidence.category ? 0.1 : 0);
 
   if (!confidence.items) {
@@ -59,24 +62,27 @@ function calcOcrConfidence(llm: LLMOcrRaw): OcrConfidenceResult {
   const aiConfidence = Math.round(score * 10) / 10;
 
   const missingFields: MissingField[] = [];
-  if (!confidence.date)     missingFields.push("date");
-  if (!llm.merchant)        missingFields.push("merchant");
-  if (!confidence.amount)   missingFields.push("amount");
+  if (!confidence.date) missingFields.push("date");
+  if (!llm.merchant) missingFields.push("merchant");
+  if (!confidence.amount) missingFields.push("amount");
   if (!confidence.category) missingFields.push("category");
 
   const reasons: string[] = [];
 
-  if (aiConfidence < CONFIDENCE_THRESHOLD) reasons.push(`신뢰도 낮음 (${aiConfidence})`);
-  if (!confidence.amount)                  reasons.push("금액 미확인");
-  if (!confidence.date)                    reasons.push("사용일 미확인");
-  if (!llm.merchant)                       reasons.push("사용처 미확인");
-  if (!confidence.category)                reasons.push("카테고리 분류 실패");
+  if (aiConfidence < CONFIDENCE_THRESHOLD)
+    reasons.push(`신뢰도 낮음 (${aiConfidence})`);
+  if (!confidence.amount) reasons.push("금액 미확인");
+  if (!confidence.date) reasons.push("사용일 미확인");
+  if (!llm.merchant) reasons.push("사용처 미확인");
+  if (!confidence.category) reasons.push("카테고리 분류 실패");
 
   if (llm.amount && llm.items.length > 0) {
     const itemsTotal = llm.items.reduce((sum, item) => sum + item.amount, 0);
     const diff = Math.abs(itemsTotal - llm.amount) / llm.amount;
     if (diff > 0.05) {
-      reasons.push(`품목 합계(${itemsTotal}원)와 영수증 합계(${llm.amount}원) 불일치`);
+      reasons.push(
+        `품목 합계(${itemsTotal}원)와 영수증 합계(${llm.amount}원) 불일치`,
+      );
     }
   }
 
@@ -86,13 +92,19 @@ function calcOcrConfidence(llm: LLMOcrRaw): OcrConfidenceResult {
   return { aiConfidence, missingFields, needsReview, reviewReason };
 }
 
-function buildDescription(merchant: string | null, date: string | null): string {
+function buildDescription(
+  merchant: string | null,
+  date: string | null,
+): string {
   if (merchant) return `${merchant} 영수증`;
-  if (date)     return `영수증 ${date}`;
+  if (date) return `영수증 ${date}`;
   return "영수증";
 }
 
-function handleRawText(rawText: string): { ocrRawText: string | null; ocrRawTextS3Key: string | null } {
+function handleRawText(rawText: string): {
+  ocrRawText: string | null;
+  ocrRawTextS3Key: string | null;
+} {
   const byteSize = Buffer.byteLength(rawText, "utf-8");
   if (byteSize <= OCR_RAW_TEXT_SIZE_LIMIT) {
     return { ocrRawText: rawText, ocrRawTextS3Key: null };
@@ -103,29 +115,28 @@ function handleRawText(rawText: string): { ocrRawText: string | null; ocrRawText
 
 function ocrFailureOutput(input: OcrInput, reason: string): OcrOutput {
   return {
-    inputType:       input.inputType,
-    date:            null,
-    merchant:        null,
-    amount:          null,
-    description:     "영수증",
-    categoryId:      null,
-    categoryName:    null,
-    payerName:       null,
-    evidenceStatus:  EvidenceStatus.OCR_FAILED,
-    evidenceFileId:  input.evidenceFileId,
-    items:           [],
-    aiConfidence:    0.0,
-    needsReview:     true,
-    missingFields:   ["date", "merchant", "amount", "category"],
-    reviewReason:    reason,
-    reviewCode:      null,
-    ocrRawText:      "",
+    inputType: input.inputType,
+    date: null,
+    merchant: null,
+    amount: null,
+    description: "영수증",
+    categoryId: null,
+    categoryName: null,
+    payerName: null,
+    evidenceStatus: EvidenceStatus.OCR_FAILED,
+    evidenceFileId: input.evidenceFileId,
+    items: [],
+    aiConfidence: 0.0,
+    needsReview: true,
+    missingFields: ["date", "merchant", "amount", "category"],
+    reviewReason: reason,
+    reviewCode: null,
+    ocrRawText: "",
     ocrRawTextS3Key: null,
   };
 }
 
 export async function runOcrPipeline(input: OcrInput): Promise<OcrOutput> {
-
   const imageResult = await getImageFromS3(input.s3Key);
 
   if (!imageResult.success) {
@@ -136,7 +147,11 @@ export async function runOcrPipeline(input: OcrInput): Promise<OcrOutput> {
   let llmRaw: LLMOcrRaw;
   try {
     const prompt = buildOcrVisionPrompt({ categories: input.categories });
-    llmRaw = await callBedrockVision(prompt, imageResult.base64, imageResult.mediaType) as unknown as LLMOcrRaw;
+    llmRaw = (await callBedrockVision(
+      prompt,
+      imageResult.base64,
+      imageResult.mediaType,
+    )) as unknown as LLMOcrRaw;
   } catch (err) {
     console.error("[OCR] Claude Vision 호출 실패:", err);
     return ocrFailureOutput(input, "OCR 분석 실패");
@@ -151,33 +166,33 @@ export async function runOcrPipeline(input: OcrInput): Promise<OcrOutput> {
     calcOcrConfidence(llmRaw);
 
   const finalNeedsReview = needsReview || llmRaw.amount === null;
-  const finalReviewReason = llmRaw.amount === null && !needsReview
-    ? "금액 미확인"
-    : reviewReason;
+  const finalReviewReason =
+    llmRaw.amount === null && !needsReview ? "금액 미확인" : reviewReason;
 
   const categoryName = llmRaw.categoryId
-    ? (input.categories.find(c => c.id === llmRaw.categoryId)?.name ?? null)
+    ? (input.categories.find((c) => c.id === llmRaw.categoryId)?.name ?? null)
     : null;
 
   const { ocrRawText, ocrRawTextS3Key } = handleRawText(llmRaw.rawText);
 
   const output: OcrOutput = {
-    inputType:       input.inputType,
-    date:            llmRaw.date,
-    merchant:        llmRaw.merchant,
-    amount:          llmRaw.amount,
-    description:     llmRaw.description || buildDescription(llmRaw.merchant, llmRaw.date),
-    categoryId:      llmRaw.categoryId,
+    inputType: input.inputType,
+    date: llmRaw.date,
+    merchant: llmRaw.merchant,
+    amount: llmRaw.amount,
+    description:
+      llmRaw.description || buildDescription(llmRaw.merchant, llmRaw.date),
+    categoryId: llmRaw.categoryId,
     categoryName,
-    payerName:       null,
-    evidenceStatus:  EvidenceStatus.OCR_COMPLETED,
-    evidenceFileId:  input.evidenceFileId,
-    items:           llmRaw.items,
+    payerName: null,
+    evidenceStatus: EvidenceStatus.OCR_COMPLETED,
+    evidenceFileId: input.evidenceFileId,
+    items: llmRaw.items,
     aiConfidence,
-    needsReview:     finalNeedsReview,
+    needsReview: finalNeedsReview,
     missingFields,
-    reviewReason:    finalReviewReason,
-    reviewCode:      null,
+    reviewReason: finalReviewReason,
+    reviewCode: null,
     ocrRawText,
     ocrRawTextS3Key,
   };

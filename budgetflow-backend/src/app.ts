@@ -1,3 +1,4 @@
+import cors from 'cors';
 import express = require('express');  
 import * as dotenv from 'dotenv';
 import * as path from 'path';
@@ -10,11 +11,17 @@ import { expenseRouter } from './modules/expense/expense.router';
 import { categoryRouter } from './modules/category/category.router';
 import { templateRouter } from './modules/template/template.router';
 import { exportRouter } from './modules/export/export.router';
+import { authenticateJWT } from './middlewares/auth.middleware';
 
 // dotenv 초기화
 dotenv.config();
 
 const app = express(); 
+
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  credentials: true,
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -30,11 +37,11 @@ try {
 
 // 15개 전체 API 세부 라우터 등록
 app.use('/api/auth', authRouter);
-app.use('/api/projects', projectRouter);
+app.use('/api/projects', authenticateJWT, projectRouter);
 app.use('/api/expenses', expenseRouter);
-app.use('/api/budget-categories', categoryRouter);
-app.use('/api/projects', templateRouter); // /projects/:id/template 매핑
-app.use('/api/projects', exportRouter);   // /projects/:id/exports 매핑
+app.use('/api/budget-categories', authenticateJWT, categoryRouter);
+app.use('/api/projects', authenticateJWT, templateRouter);
+app.use('/api/projects', authenticateJWT, exportRouter);
 
 // 공통 서버 상태 에러 핸들러 미들웨어
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

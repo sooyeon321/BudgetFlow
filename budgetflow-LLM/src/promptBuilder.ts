@@ -34,7 +34,9 @@ function getTemplate(filename: string): string {
     try {
       _cache[filename] = fs.readFileSync(filePath, "utf-8");
     } catch (err) {
-      throw new Error(`[PromptBuilder] 프롬프트 파일을 읽을 수 없습니다: ${filePath}\n${err}`);
+      throw new Error(
+        `[PromptBuilder] 프롬프트 파일을 읽을 수 없습니다: ${filePath}\n${err}`,
+      );
     }
   }
   return _cache[filename];
@@ -47,26 +49,31 @@ function formatCategories(categories: Category[]): string {
     .join("\n");
 }
 
-function replacePlaceholders(template: string, values: Record<string, string>): string {
+function replacePlaceholders(
+  template: string,
+  values: Record<string, string>,
+): string {
   let result = template;
   for (const [key, value] of Object.entries(values)) {
     result = result.replaceAll(`{{${key}}}`, value);
   }
   const remaining = result.match(/\{\{[^}]+\}\}/g);
   if (remaining) {
-    console.warn(`[PromptBuilder] 치환되지 않은 플레이스홀더: ${remaining.join(", ")}`);
+    console.warn(
+      `[PromptBuilder] 치환되지 않은 플레이스홀더: ${remaining.join(", ")}`,
+    );
   }
   return result;
 }
 
 export function buildTextParsePrompt(params: TextParsePromptParams): string {
   return replacePlaceholders(getTemplate("text_parse_prompt.txt"), {
-    requestDate:               params.requestDate,
-    timezone:                  params.timezone,
+    requestDate: params.requestDate,
+    timezone: params.timezone,
     "submittedBy.displayName": params.submittedBy.displayName,
-    "submittedBy.userId":      params.submittedBy.userId,
-    categories:                formatCategories(params.categories),
-    text:                      params.text,
+    "submittedBy.userId": params.submittedBy.userId,
+    categories: formatCategories(params.categories),
+    text: params.text,
   });
 }
 
