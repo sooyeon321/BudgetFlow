@@ -207,6 +207,12 @@ async function seedProjectsAndCategories(client: any) {
 // ─── Phase 3: Faker 지출 20건 ─────────────────────────────────────────────
 
 async function seedFakerExpenses(client: any) {
+  // 재실행 시 중복 방지: 기존 faker 지출 삭제
+  const projectIds = DEMO_PROJECTS.map((p) => p.id);
+  await client.query(`DELETE FROM expenses WHERE project_id = ANY($1)`, [
+    projectIds,
+  ]);
+
   const activeCategories = DEMO_CATEGORIES.filter(
     (c) => c.project_id === "project-aingthon",
   );
