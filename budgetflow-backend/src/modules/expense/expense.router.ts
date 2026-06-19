@@ -120,8 +120,10 @@ router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   }
 
   if (type === 'image' || type === 'text_image') {
+    // 봇이 전달하는 imageUrl은 S3 객체 URL 전체이므로, LLM에는 객체 키만 추출해서 전달
+    const s3Key = decodeURIComponent(new URL(imageUrl).pathname.slice(1));
     const llmResult = await aiOcrService.analyzeImage({
-      s3Key: imageUrl, projectId, evidenceFileId: imageUrl,
+      s3Key, projectId, evidenceFileId: imageUrl,
       submittedBy, categories,
     });
     if (llmResult.amount === null) {
