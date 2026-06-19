@@ -7,7 +7,7 @@ dotenv.config();
 //환경변수 필수값 검증증
 const REQUIRED_ENVS = [
   'SLACK_BOT_TOKEN',
-  'SLACK_SIGNING_SECRET',
+  'SLACK_APP_TOKEN',
   'BACKEND_URL',
   'PROJECT_ID',
   'AWS_REGION',
@@ -25,8 +25,8 @@ const PROJECT_ID = process.env.PROJECT_ID!;
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN!,
-  signingSecret: process.env.SLACK_SIGNING_SECRET!,
-  port: Number(process.env.PORT) || 4000,
+  appToken: process.env.SLACK_APP_TOKEN!,
+  socketMode: true,
 });
 
 // EC2 IAM Role로 자동 인증 (Access Key 불필요)
