@@ -4,16 +4,45 @@ import axios from 'axios';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 dotenv.config();
 
+//환경변수 필수값 검증증
+const REQUIRED_ENVS = [
+  'SLACK_BOT_TOKEN',
+  'SLACK_APP_TOKEN',
+  'BACKEND_URL',
+  'PROJECT_ID',
+  'AWS_REGION',
+  'S3_BUCKET_NAME',
+];
+
+for (const key of REQUIRED_ENVS) {
+  if (!process.env[key]) {
+    throw new Error(`필수 환경변수 누락: ${key}`);
+  }
+}
+
+const BACKEND_URL = process.env.BACKEND_URL!.replace(/\/$/, '');
+const PROJECT_ID = process.env.PROJECT_ID!;
+
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN!,
-  signingSecret: process.env.SLACK_SIGNING_SECRET!,
-  port: Number(process.env.PORT) || 4000,
+  appToken: process.env.SLACK_APP_TOKEN!,
+  socketMode: true,
 });
 
 // EC2 IAM Role로 자동 인증 (Access Key 불필요)
 const s3 = new S3Client({
   region: process.env.AWS_REGION || 'ap-northeast-2',
 });
+
+// 슬랙에서 사용자 이름 가져오기
+async function getSlackUserName(client: any, userId: string): Promise<string> {
+  try {
+    const result = await client.users.info({ user: userId });
+    return result.user.real_name || result.user.name || userId;
+  } catch {
+    return userId;
+  }
+}
 
 // 슬랙에서 이미지 다운로드
 async function downloadImage(url: string): Promise<Buffer> {
@@ -32,7 +61,8 @@ async function uploadToS3(
   fileName: string,
   mimeType: string
 ): Promise<string> {
-  const key = `receipts/${Date.now()}_${fileName}`;
+  const safeFileName = fileName.replace(/[^\w.\-가-힣]/g, '_');
+  const key = `receipts/${Date.now()}_${safeFileName}`;
 
   await s3.send(
     new PutObjectCommand({
@@ -43,30 +73,42 @@ async function uploadToS3(
     })
   );
 
-  return `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-northeast-2'}.amazonaws.com/${key}`;
+  return `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 }
 
 // 백엔드에 전달
 async function sendToBackend(payload: object) {
   const response = await axios.post(
-    `${process.env.BACKEND_URL}/api/expenses`,
+    `${BACKEND_URL}/api/expenses`,
     payload,
-    { headers: { 'Content-Type': 'application/json' } }
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-BudgetFlow-Bot-Secret': process.env.BOT_API_SECRET ?? '',
+      },
+      timeout: 15000,
+    }
   );
+
   return response.data;
 }
 
 // 결과 메시지 전송
 async function sendResultMessage(client: any, channel: string, result: any) {
-  if (result.status === 'needs_review') {
+  if (result.action === 'request_re_input') {
     await client.chat.postMessage({
       channel,
-      text: `⚠️ 검토가 필요한 항목이 있습니다.\n사유: ${result.reason}`,
+      text: '⚠️ 금액 정보를 찾을 수 없습니다. 다시 입력해주세요.',
+    });
+  } else if (result.status === 'needs_review') {
+    await client.chat.postMessage({
+      channel,
+      text: `⚠️ 검토가 필요한 항목이 있습니다.\n사유: ${result.review_reason || '확인 필요'}`,
     });
   } else {
     await client.chat.postMessage({
       channel,
-      text: `✅ 등록됐습니다!\n날짜: ${result.date}\n금액: ${result.amount}원\n항목: ${result.category}`,
+      text: `✅ 등록됐습니다!\n날짜: ${result.date}\n금액: ${result.amount}원\n항목: ${result.description}`,
     });
   }
 }
@@ -81,6 +123,11 @@ app.event('message', async ({ event, client }) => {
 
   const hasText = text.trim().length > 0;
   const hasImage = files.some((f: any) => f.mimetype?.startsWith('image/'));
+
+  // 텍스트, 이미지도 둘 다 없는 메세지 무시
+  if (!hasText && !hasImage) {
+    return;
+  }
 
   // 접수 확인 메시지 전송
   await client.chat.postMessage({
@@ -99,11 +146,20 @@ app.event('message', async ({ event, client }) => {
       console.log('S3 업로드 완료:', s3Url);
     }
 
+    // 슬랙 사용자 이름 가져오기
+    const displayName = await getSlackUserName(client, msg.user);
+
     // 페이로드 구성
     const payload: any = {
       slackUserId: msg.user,
       channelId: msg.channel,
+      projectId: PROJECT_ID,
       type: hasImage && hasText ? 'text_image' : hasImage ? 'image' : 'text',
+      submittedBy: {
+        userId: msg.user,
+        displayName: displayName,
+      },
+      categories: [],
     };
 
     if (hasText) payload.text = text;
